@@ -1,7 +1,7 @@
-package com.eigengo.lift.exercise.classifiers.model.provers
+package cakesolutions.model.provers
 
-import com.eigengo.lift.exercise.classifiers.QueryModel
-import com.eigengo.lift.exercise.classifiers.model.ModelGenerators
+import cakesolutions.QueryModel
+import cakesolutions.model.ModelGenerators
 import com.typesafe.config.ConfigFactory
 import org.scalatest._
 import org.scalatest.prop._

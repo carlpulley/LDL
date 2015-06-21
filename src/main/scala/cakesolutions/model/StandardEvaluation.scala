@@ -1,7 +1,7 @@
-package com.eigengo.lift.exercise.classifiers.model
+package cakesolutions.model
 
 import akka.actor.ActorLogging
-import com.eigengo.lift.exercise.classifiers.QueryModel
+import cakesolutions.QueryModel
 
 trait StandardEvaluation {
   this: ActorLogging =>

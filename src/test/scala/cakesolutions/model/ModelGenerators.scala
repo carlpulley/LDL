@@ -1,6 +1,6 @@
-package com.eigengo.lift.exercise.classifiers.model
+package cakesolutions.model
 
-import com.eigengo.lift.exercise.classifiers.QueryModel._
+import cakesolutions.QueryModel._
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalacheck.Gen._

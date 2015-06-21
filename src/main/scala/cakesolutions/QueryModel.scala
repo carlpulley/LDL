@@ -1,4 +1,4 @@
-package com.eigengo.lift.exercise.classifiers
+package cakesolutions
 
 object QueryModel {
 

@@ -1,7 +1,7 @@
-package com.eigengo.lift.exercise.classifiers.model.provers
+package cakesolutions.model.provers
 
-import com.eigengo.lift.exercise.classifiers.QueryModel
-import com.eigengo.lift.exercise.classifiers.model.SMTInterface
+import cakesolutions.QueryModel
+import cakesolutions.model.SMTInterface
 import com.typesafe.config.Config
 import edu.nyu.acsys.CVC4._
 import scala.async.Async._

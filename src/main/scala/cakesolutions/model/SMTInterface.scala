@@ -1,6 +1,6 @@
-package com.eigengo.lift.exercise.classifiers.model
+package cakesolutions.model
 
-import com.eigengo.lift.exercise.classifiers.QueryModel
+import cakesolutions.QueryModel
 import scala.concurrent.{ExecutionContext, Future}
 
 trait SMTInterface {
