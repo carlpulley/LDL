@@ -1,11 +1,12 @@
 package cakesolutions.model
 
 import akka.actor.ActorLogging
-import cakesolutions.QueryModel
+import cakesolutions.syntax.QueryLanguage
 
 trait StandardEvaluation {
   this: ActorLogging =>
 
+  import QueryLanguage._
   import QueryModel._
 
   // TODO: introduce memoisation into `evaluate` functions?
@@ -101,7 +102,7 @@ trait StandardEvaluation {
 
     case All(Test(query1), query2) =>
       log.debug(s"st = $state\n  st |== $query\n  ~~> || st |== ~ $query1\n  ~~> || st |== $query2")
-      join(evaluateQuery(QueryModel.not(query1))(state, lastState), evaluateQuery(query2)(state, lastState))
+      join(evaluateQuery(QueryLanguage.not(query1))(state, lastState), evaluateQuery(query2)(state, lastState))
 
     case All(Choice(path1, path2, remainingPaths @ _*), query1) =>
       log.debug(s"st = $state\n  st |== $query${(path1 +: path2 +: remainingPaths).map(p => s"\n  ~~> && st |== All($p, $query1)").mkString("")}")

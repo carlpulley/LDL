@@ -1,11 +1,23 @@
-package cakesolutions.model
+package cakesolutions.model.provers
 
-import cakesolutions.QueryModel
+import cakesolutions.syntax.QueryLanguage
+
 import scala.concurrent.{ExecutionContext, Future}
 
-trait SMTInterface {
+object Interface {
 
-  import QueryModel._
+  import QueryLanguage._
+
+  sealed trait ProverInterface
+  case class Simplify(query: Query) extends ProverInterface
+  case class Satisfiable(query: Query) extends ProverInterface
+  case class Valid(query: Query) extends ProverInterface
+
+}
+
+trait Interface {
+
+  import QueryLanguage._
 
   /**
    * Function that treats the query as a propositional formula (so, path expressions are taken to be "propositional")
@@ -13,20 +25,20 @@ trait SMTInterface {
    *
    * @param query query to be rewritten/simplified by applying propositional rules of reasoning
    */
-  def simplify(query: Query)(implicit ec: ExecutionContext): Future[Query]
+  protected def simplify(query: Query)(implicit ec: ExecutionContext): Future[Query]
 
   /**
    * Function that interacts with an SMT prover and determines if the query is satisfiable or not.
    *
    * @param query LDL formula that is treated as being propositional
    */
-  def satisfiable(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
+  protected def satisfiable(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
 
   /**
    * Function that interacts with an SMT prover and determines if the query is valid or not.
    *
    * @param query LDL formula that is treated as being propositional
    */
-  def valid(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
+  protected def valid(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
 
 }

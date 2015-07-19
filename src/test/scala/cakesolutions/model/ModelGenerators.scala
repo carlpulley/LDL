@@ -1,9 +1,10 @@
 package cakesolutions.model
 
-import cakesolutions.QueryModel._
+import cakesolutions.syntax.QueryLanguage._
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalacheck.Gen._
+import QueryModel._
 
 trait ModelGenerators {
 

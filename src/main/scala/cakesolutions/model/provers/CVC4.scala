@@ -1,7 +1,6 @@
 package cakesolutions.model.provers
 
-import cakesolutions.QueryModel
-import cakesolutions.model.SMTInterface
+import cakesolutions.syntax.QueryLanguage
 import com.typesafe.config.Config
 import edu.nyu.acsys.CVC4._
 import scala.async.Async._
@@ -19,11 +18,11 @@ import scala.concurrent.{ExecutionContext, Future}
  *   - export LDFLAGS="-L/usr/local/lib"
  *   - ./configure --prefix=/usr/local/Cellar/cvc4/1.4 --enable-language-bindings=java JAVA_CPPFLAGS=-I/System/Library/Frameworks/JavaVM.framework/Headers && make && make install && brew link cvc4
  */
-class CVC4(config: Config) extends SMTInterface {
+class CVC4(config: Config) extends Interface {
 
   System.load(config.getString("prover.cvc.library"))
 
-  import QueryModel._
+  import QueryLanguage._
 
   private val em = new ExprManager()
   private val smt = new SmtEngine(em)
