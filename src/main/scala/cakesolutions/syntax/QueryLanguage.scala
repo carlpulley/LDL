@@ -2,6 +2,8 @@ package cakesolutions.syntax
 
 object QueryLanguage {
 
+  type Observation = Set[GroundFact]
+
   /**
    * Facts that may hold of sensor data.
    */

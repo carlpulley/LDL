@@ -11,7 +11,9 @@ object Dependencies {
     val testkit = "com.typesafe.akka" %% "akka-testkit" % version
   }
 
-  val async = "org.scala-lang.modules" %% "scala-async" % "0.9.3"
+  val async     = "org.scala-lang.modules" %% "scala-async" % "0.9.3"
+
+  val parboiled = "org.parboiled"          %% "parboiled"   % "2.1.0"
 
   object scalaz {
     val version = "7.1.3"
