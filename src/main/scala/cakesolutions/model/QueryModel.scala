@@ -7,26 +7,35 @@ object QueryModel {
   import QueryLanguage._
 
   /**
+   * TODO: document!
+   */
+  sealed trait Event {
+    def observation: Observation
+  }
+  case class Next(observation: Observation) extends Event
+  case class Completed(observation: Observation) extends Event
+
+  /**
    * Values representing the current evaluation state of a given query:
    *   - stable queries are values that hold now and, no matter how the model develops, will remain in their current state
    *   - unstable queries are values that hold now and, for some sequence of possible events updates, may deviate from
    *     their current value
    */
-  sealed trait QueryValue
+  sealed trait Notification
   /**
    * @param result validity of linear dynamic logic statement at this and future points in time
    */
-  case class StableValue(result: Boolean) extends QueryValue
+  case class StableValue(result: Boolean) extends Notification
   /**
    * @param state  positive propositional description of the next states for an alternating automaton over words
    */
-  case class UnstableValue(state: Query) extends QueryValue
+  case class UnstableValue(state: Query) extends Notification
 
   /**
    * Auxillary functions that support QueryValue lattice structure
    */
 
-  def meet(value1: QueryValue, value2: QueryValue): QueryValue = (value1, value2) match {
+  def meet(value1: Notification, value2: Notification): Notification = (value1, value2) match {
     case (StableValue(result1), StableValue(result2)) =>
       StableValue(result1 && result2)
 
@@ -46,7 +55,7 @@ object QueryModel {
       result2
   }
 
-  def join(value1: QueryValue, value2: QueryValue): QueryValue = (value1, value2) match {
+  def join(value1: Notification, value2: Notification): Notification = (value1, value2) match {
     case (StableValue(result1), StableValue(result2)) =>
       StableValue(result1 || result2)
 
@@ -66,7 +75,7 @@ object QueryModel {
       result1
   }
 
-  def complement(value: QueryValue): QueryValue = value match {
+  def complement(value: Notification): Notification = value match {
     case StableValue(result) =>
       StableValue(!result)
 

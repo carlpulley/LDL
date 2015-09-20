@@ -1,31 +1,11 @@
 package cakesolutions.monitor
 
-import akka.actor.{ActorRef, Props, Extension, ExtendedActorSystem}
+import akka.actor.{ActorRef, ExtendedActorSystem, Extension}
+import akka.io.UdpConnected.Event
 import cakesolutions.syntax.QueryLanguage.Query
-import java.util.UUID
-import cakesolutions.syntax.{QueryLanguage, QueryParser}
-
-import scala.collection.mutable
-import scala.util.Try
-
-object AkkaMonitor {
-  private var probes = mutable.Map.empty[UUID, ActorRef]
-}
+import cakesolutions.syntax.QueryParser
 
 class AkkaMonitor(system: ExtendedActorSystem) extends Extension {
-
-  import AkkaMonitor._
-  import QueryLanguage.Observation
-
-  private[this] def monitor(query: Query, probe: ActorRef): UUID = {
-    val id = UUID.randomUUID()
-    val monitor = system.actorOf(Props(new CVC4Prover(query))) // TODO: should we be using a stream here?
-    probes += id -> monitor
-
-    system.eventStream.subscribe(monitor, classOf[Observation])
-
-    id
-  }
 
   /**
    * Factory method for creating LDL query monitors.
@@ -33,41 +13,47 @@ class AkkaMonitor(system: ExtendedActorSystem) extends Extension {
    * e.g. {{{
    *      monitor """
    *        [true] ff
-   *      """ using actorRef
+   *      """ using probe
    * }}}
    *
    * @param query query that is to be monitored (in real-time).
-   * @param probe monitoring events are sent to this actor.
-   * @return unique identifier (i.e. UUID) for the monitor.
+   * @param probe monitoring notifications (in response to events) are sent to this actor.
+   * @return cancellable instance.
    */
-  def monitor(query: String): MonitorWith = {
-    new MonitorWith(query)
+  def monitor(query: String): { def using(probe: ActorRef): { def cancel(): Boolean } } = {
+    val parsedQuery = new QueryParser(query).Query.run().get // FIXME: to throw an exception or not?
+    new MonitorWith(parsedQuery)
   }
 
-  /**
-   * Method to terminate query monitoring.
-   *
-   * @param id unique identifier (i.e. UUID) for monitor that is to be terminated.
-   * @return true iff monitor was successfully terminated.
-   */
-  def cancel(id: UUID): Boolean = {
-    if (probes.contains(id)) {
-      val result = system.eventStream.unsubscribe(probes(id), classOf[Observation])
-      system.stop(probes(id))
-      probes -= id
+  private class MonitorWith private[monitor] (query: Query) {
 
+    private[this] var monitor: Option[ActorRef] = Option.empty
+
+    /**
+     * Method to terminate query monitoring.
+     *
+     * @return true iff monitor was successfully terminated.
+     */
+    def cancel(): Boolean = {
+      val result = monitor.forall(system.eventStream.unsubscribe(_, classOf[Event]))
+      monitor.foreach(system.stop)
+      monitor = Option.empty
       result
-    } else {
-      false
     }
-  }
 
-  class MonitorWith private[monitor] (query: String) {
-    def using(probe: ActorRef): Try[UUID] = {
-      for {
-        form <- new QueryParser(query).Query.run()
-      } yield monitor(form, probe)
+    /**
+     * Add an actor probe to this monitoring instance. All monitored notifications will be sent to this probe actor.
+     *
+     * @param probe monitoring notifications (in response to events) are sent to this actor.
+     * @return cancellable instance.
+     */
+    def using(probe: ActorRef): { def cancel(): Boolean } = {
+      monitor = Some(system.actorOf(CVC4Prover.props(query)))
+      monitor.foreach(system.eventStream.subscribe(_, classOf[Event])) // FIXME: need to scope per CVC4 instance!
+
+      this
     }
+
   }
 
 }

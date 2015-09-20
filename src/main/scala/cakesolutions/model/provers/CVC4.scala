@@ -24,12 +24,12 @@ class CVC4(config: Config) extends Interface {
 
   import QueryLanguage._
 
-  private val em = new ExprManager()
-  private val smt = new SmtEngine(em)
-  private var queryCount: Int = 0
-  private val queryMapping = mutable.HashMap.empty[Query, Expr]
-  private var propCount: Int = 0
-  private val propMapping = mutable.HashMap.empty[Proposition, Expr]
+  private[this] val em = new ExprManager()
+  private[this] val smt = new SmtEngine(em)
+  private[this] var queryCount: Int = 0
+  private[this] val queryMapping = mutable.HashMap.empty[Query, Expr]
+  private[this] var propCount: Int = 0
+  private[this] val propMapping = mutable.HashMap.empty[Proposition, Expr]
 
   // Quantifier-free logic of undefined functions
   smt.setLogic("QF_UF")

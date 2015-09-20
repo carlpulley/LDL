@@ -44,7 +44,7 @@ trait ModelGenerators {
     5 -> (for { path <- Gen.lzy(PathGen(depth-1)); query <- Gen.lzy(QueryGen(depth-1)) } yield All(path, query))
   )
 
-  val QueryValueGen: Gen[QueryValue] = frequency(
+  val QueryValueGen: Gen[Notification] = frequency(
     1 -> arbitrary[Boolean].map(StableValue),
     1 -> (for { query <- QueryGen() } yield UnstableValue(query))
   )
