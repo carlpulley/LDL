@@ -7,9 +7,13 @@ name := "linear-dynamic-logic"
 libraryDependencies ++= Seq(
   async,
   akka.actor,
-  parboiled,
+  gll,
   scalaz.core,
+  akka.slf4j,
+  logback,
+  slf4j.simple,
   // Testing
+  akka.testkit,
   scalatest  % "test",
   scalacheck % "test"
 )

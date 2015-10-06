@@ -1,6 +1,7 @@
 package cakesolutions.monitor
 
-import akka.actor.{Actor, ActorLogging, Props, Stash}
+import akka.actor._
+import akka.event.LoggingReceive
 import cakesolutions.model.QueryModel._
 import cakesolutions.model.StandardEvaluation
 import cakesolutions.model.provers.CVC4
@@ -35,7 +36,54 @@ class CVC4Prover(query: Query) extends Actor with Stash with ActorLogging with S
 
   private[this] var resultCache: Option[Notification] = None
 
+  private def processEvent(event: ObservableEvent, query: Query): Future[Notification] = {
+    // NOTE: as mutable state is updated, we need to ensure evaluation occurs on this thread (i.e. in a "synchronous" step)
+    context.become(proving(query))
+
+    log.debug(s"\n  $event")
+
+    val stage =
+      if (resultCache.isDefined) {
+        resultCache.get
+      } else {
+        evaluateQuery(query)(event)
+      }
+
+    log.debug(s"\n  EVALUATE: $query\n  ~~> $stage")
+
+    stage match {
+      case UnstableValue(nextQuery) =>
+        async {
+          // We interact with the prover concurrently to determine validity of, satisfiability of and simplify `nextQuery`
+          val validQuery = prover.valid(nextQuery)
+          lazy val satisfiableQuery = prover.satisfiable(nextQuery)
+          lazy val simplifiedQuery = prover.simplify(nextQuery)
+
+          if (await(validQuery)) {
+            // `nextQuery` is valid - so any LDL unwinding of this formula will allow it to become true
+            StableValue(result = true)
+          } else if (await(satisfiableQuery)) {
+            // We need to unwind LDL formula further in order to determine its validity
+            context.become(proof(await(simplifiedQuery)))
+            // We pass on next query here to "facilitate" decision making on repeated query matching
+            UnstableValue(nextQuery)
+          } else {
+            // `nextQuery` is unsatisfiable - so no LDL unwinding of this formula will allow it to become true
+            StableValue(result = false)
+          }
+        }
+
+      case value: StableValue =>
+        resultCache = Some(value)
+
+        Future(value)
+    }
+  }
+
   private def proving(query: Query): Receive = {
+    case Cancel =>
+      context.stop(self)
+
     case Continue =>
       context.become(proof(query))
       unstashAll()
@@ -44,49 +92,21 @@ class CVC4Prover(query: Query) extends Actor with Stash with ActorLogging with S
       stash()
   }
 
-  private def proof(query: Query): Receive = {
-    case event: Event =>
-      // NOTE: as mutable state is updated, we need to ensure evaluation occurs on this thread (i.e. in a "synchronous" step)
-      context.become(proving(query))
+  private def proof(query: Query): Receive = LoggingReceive {
+    case Cancel =>
+      context.stop(self)
 
-      log.debug(s"\n  $event")
-
-      val stage =
-        if (resultCache.isDefined) {
-          resultCache.get
-        } else {
-          evaluateQuery(query)(event)
-        }
-      log.debug(s"\n  EVALUATE: $query\n  ~~> $stage")
-      val flow = stage match {
-        case UnstableValue(nextQuery) =>
-          async {
-            // We interact with the prover concurrently to determine validity of, satisfiability of and simplify `nextQuery`
-            val validQuery = prover.valid(nextQuery)
-            lazy val satisfiableQuery = prover.satisfiable(nextQuery)
-            lazy val simplifiedQuery = prover.simplify(nextQuery)
-
-            if (await(validQuery)) {
-              // `nextQuery` is valid - so any LDL unwinding of this formula will allow it to become true
-              StableValue(result = true)
-            } else if (await(satisfiableQuery)) {
-              // We need to unwind LDL formula further in order to determine its validity
-              context.become(proof(await(simplifiedQuery)))
-              // We pass on next query here to "facilitate" decision making on repeated query matching
-              UnstableValue(nextQuery)
-            } else {
-              // `nextQuery` is unsatisfiable - so no LDL unwinding of this formula will allow it to become true
-              StableValue(result = false)
-            }
-          }
-
-        case value: StableValue =>
-          resultCache = Some(value)
-
-          Future(value)
+    case event @ Next(_, replyTo) =>
+      processEvent(event, query).foreach { msg =>
+        replyTo ! msg
+        self ! Continue
       }
 
-      flow.foreach(_ => self ! Continue)
+    case event @ Completed(_, replyTo) =>
+      processEvent(event, query).foreach { msg =>
+        replyTo ! msg
+        self ! Continue
+      }
   }
 
   def receive = proof(query)

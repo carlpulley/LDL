@@ -16,7 +16,7 @@ object BaseSettings {
   val projectSettings: Seq[Def.Setting[_]] =
     Seq(
       organization := "cakesolutions.net",
-      scalaVersion := "2.11.6",
+      scalaVersion := "2.11.7",
       version := Build.generateVersion("0", "1", Build.SNAPSHOT),
       scalacOptions in Compile ++= Seq("-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation", "-unchecked", "-Ywarn-dead-code", "-feature"),
       scalacOptions in (Compile, doc) <++= (name in (Compile, doc), version in (Compile, doc)) map DefaultOptions.scaladoc,

@@ -1,5 +1,6 @@
 package cakesolutions.model
 
+import akka.actor.ActorRef
 import cakesolutions.syntax.QueryLanguage
 
 object QueryModel {
@@ -7,13 +8,18 @@ object QueryModel {
   import QueryLanguage._
 
   /**
-   * TODO: document!
+   * Events wrap observations that the `ActorSystem` makes.
+   *
+   * `Next` events imply the event stream remains unclosed. `Completed` events will close the stream.
    */
-  sealed trait Event {
+  sealed trait Event
+  sealed trait ObservableEvent extends Event {
     def observation: Observation
+    def replyTo: ActorRef
   }
-  case class Next(observation: Observation) extends Event
-  case class Completed(observation: Observation) extends Event
+  case class Next(observation: Observation, replyTo: ActorRef) extends ObservableEvent
+  case class Completed(observation: Observation, replyTo: ActorRef) extends ObservableEvent
+  case object Cancel extends Event
 
   /**
    * Values representing the current evaluation state of a given query:

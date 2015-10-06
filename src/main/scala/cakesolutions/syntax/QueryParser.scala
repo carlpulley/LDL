@@ -1,53 +1,43 @@
 package cakesolutions.syntax
 
-import org.parboiled2.CharPredicate._
-import org.parboiled2._
-import scala.language.implicitConversions
+import com.codecommit.gll.RegexParsers
 
-class QueryParser(val input: ParserInput) extends Parser with StringBuilding {
+object QueryParser extends RegexParsers {
 
-  def ws(s: String): Rule0 = rule {
-    str(s) ~ zeroOrMore(anyOf(" \n\r\t"))
-  }
+  lazy val GroundFact: Parser[QueryLanguage.GroundFact] =
+    "[_a-zA-Z][_a-zA-Z0-9]*".r.filter(f => !QueryLanguage.keywords.contains(f)) ^^ QueryLanguage.GroundFact
 
-  def GroundFact: Rule1[QueryLanguage.GroundFact] = rule {
-    capture((Alpha | '_') ~ zeroOrMore(AlphaNum | '_')) ~> { (w: Any) => QueryLanguage.GroundFact(w.toString) }
-  }
+  // FIXME: enable unambiguous use of not!
+  lazy val Proposition: Parser[QueryLanguage.Proposition] =
+    "true" ^^ (_ => QueryLanguage.True) |
+      "false" ^^ (_ => QueryLanguage.False) |
+      GroundFact ^^ QueryLanguage.Assert |
+      "~" ~> GroundFact ^^ (QueryLanguage.Neg andThen QueryLanguage.Assert) |
+      //"~" ~> Proposition ^^ QueryLanguage.not |
+      Proposition ~ ("&&" ~> Proposition).+ ^^ { case (p, ps) => QueryLanguage.Conjunction(p, ps.head, ps.tail: _*) } |
+      Proposition ~ ("||" ~> Proposition).+ ^^ { case (p, ps) => QueryLanguage.Disjunction(p, ps.head, ps.tail: _*) } |
+      "(" ~> Proposition <~ ")" ^^ identity
 
-  def Fact: Rule1[QueryLanguage.Fact] = rule {
-    GroundFact ~> { (f: QueryLanguage.GroundFact) => f } |
-      ws("~") ~ GroundFact ~> { (f: QueryLanguage.GroundFact) => QueryLanguage.Neg(f) }
-  }
+  // FIXME: deal with ambiguity!
+  lazy val Path: Parser[QueryLanguage.Path] =
+    Query <~ "?" ^^ QueryLanguage.Test |
+      Path <~ "*" ^^ QueryLanguage.Repeat |
+      Path ~ ("+" ~> Path).+ ^^ { case (p, ps) => QueryLanguage.Choice(p, ps.head, ps.tail: _*) } |
+      Path ~ (";" ~> Path).+ ^^ { case (p, ps) => QueryLanguage.Sequence(p, ps.head, ps.tail: _*) } |
+      "(" ~> Path <~ ")" ^^ identity |
+      Proposition ^^ QueryLanguage.AssertFact
 
-  def Proposition: Rule1[QueryLanguage.Proposition] = rule {
-    Fact ~> { (f: QueryLanguage.Fact) => QueryLanguage.Assert(f) } |
-      ws("true") ~ push(QueryLanguage.True) |
-      ws("false") ~ push(QueryLanguage.False) |
-      ws("~") ~ Proposition ~> { (p: QueryLanguage.Proposition) => QueryLanguage.not(p) } |
-      Proposition ~ ws("&&") ~ oneOrMore(Proposition).separatedBy(ws("&&")) ~> { (p: QueryLanguage.Proposition, ps: Seq[QueryLanguage.Proposition]) => QueryLanguage.Conjunction(p, ps.head, ps.tail: _*) } |
-      Proposition ~ ws("||") ~ oneOrMore(Proposition).separatedBy(ws("||")) ~> { (p: QueryLanguage.Proposition, ps: Seq[QueryLanguage.Proposition]) => QueryLanguage.Disjunction(p, ps.head, ps.tail: _*) } |
-      ws("(") ~ Proposition ~ ws(")") ~> { (p: QueryLanguage.Proposition) => p }
-  }
-
-  def Path: Rule1[QueryLanguage.Path] = rule {
-    Proposition ~> { (p: QueryLanguage.Proposition) => QueryLanguage.AssertFact(p) } |
-      Query ~ ws("?") ~> { (q: QueryLanguage.Query) => QueryLanguage.Test(q) } |
-      Path ~ ws("+") ~ oneOrMore(Path).separatedBy(ws("+")) ~> { (p: QueryLanguage.Path, ps: Seq[QueryLanguage.Path]) => QueryLanguage.Choice(p, ps.head, ps.tail: _*) } |
-      Path ~ ws(";") ~ oneOrMore(Path).separatedBy(ws(";")) ~> { (p: QueryLanguage.Path, ps: Seq[QueryLanguage.Path]) => QueryLanguage.Sequence(p, ps.head, ps.tail: _*) } |
-      Path ~ ws("*") ~> { (p: QueryLanguage.Path) => QueryLanguage.Repeat(p) } |
-      ws("(") ~ Path ~ ws(")") ~> { (p: QueryLanguage.Path) => p }
-  }
-
-  def Query: Rule1[QueryLanguage.Query] = rule {
-    Proposition ~> { (p: QueryLanguage.Proposition) => QueryLanguage.Formula(p) } |
-      ws("TT") ~ push(QueryLanguage.TT) |
-      ws("FF") ~ push(QueryLanguage.FF) |
-      ws("~") ~ Query ~> { (q: QueryLanguage.Query) => QueryLanguage.not(q) } |
-      Query ~ ws("&&") ~ oneOrMore(Query).separatedBy(ws("&&")) ~> { (q: QueryLanguage.Query, qs: Seq[QueryLanguage.Query]) => QueryLanguage.And(q, qs.head, qs.tail: _*) } |
-      Query ~ ws("||") ~ oneOrMore(Query).separatedBy(ws("||")) ~> { (q: QueryLanguage.Query, qs: Seq[QueryLanguage.Query]) => QueryLanguage.Or(q, qs.head, qs.tail: _*) } |
-      ws("<") ~ Path ~ ws(">") ~ Query ~> { (p: QueryLanguage.Path, q: QueryLanguage.Query) => QueryLanguage.Exists(p, q) } |
-      ws("[") ~ Path ~ ws("]") ~ Query ~> { (p: QueryLanguage.Path, q: QueryLanguage.Query) => QueryLanguage.All(p, q) } |
-      ws("(") ~ Query ~ ws(")") ~> { (q: QueryLanguage.Query) => q }
-  }
+  // FIXME: deal with ambiguity!
+  // FIXME: enable unambiguous use of not!
+  lazy val Query: Parser[QueryLanguage.Query] =
+    "TT" ^^ (_ => QueryLanguage.TT) |
+      "FF" ^^ (_ => QueryLanguage.FF) |
+      //"~" ~> Query ^^ QueryLanguage.not |
+      "<" ~> Path ~ ">" ~ Query ^^ { case (p, _, q) => QueryLanguage.Exists(p, q) } |
+      "[" ~> Path ~ "]" ~ Query ^^ { case (p, _, q) => QueryLanguage.All(p, q) } |
+      Query ~ ("&&" ~> Query).+ ^^ { case (q, qs) => QueryLanguage.And(q, qs.head, qs.tail: _*) } |
+      Query ~ ("||" ~> Query).+ ^^ { case (q, qs) => QueryLanguage.Or(q, qs.head, qs.tail: _*) } |
+      "(" ~> Query <~ ")" ^^ identity |
+      Proposition ^^ QueryLanguage.Formula
 
 }

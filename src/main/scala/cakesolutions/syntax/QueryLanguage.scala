@@ -2,7 +2,12 @@ package cakesolutions.syntax
 
 object QueryLanguage {
 
+  /**
+   * Observations record the state of, for example, sensor outputs.
+   */
   type Observation = Set[GroundFact]
+
+  val keywords = Seq("true", "false", "TT", "FF")
 
   /**
    * Facts that may hold of sensor data.
@@ -14,9 +19,14 @@ object QueryLanguage {
   }
 
   /**
-   * Ground facts logically model named ground predicates (Scala values are embedded as constants)
+   * Ground facts logically model named ground predicates.
    */
-  case class GroundFact(name: String, values: Any*) extends Fact
+  case class GroundFact(name: String) extends Fact {
+    require(name.matches("^[_a-zA-Z][_a-zA-Z0-9]*$"))
+    require(!keywords.contains(name))
+
+    override def toString = name
+  }
 
   /**
    * We query exercise models using a DSL based upon a linear-time dynamic logic. Exercise sessions define the finite

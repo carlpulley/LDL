@@ -1,59 +1,26 @@
 package cakesolutions.monitor
 
 import akka.actor.{ActorRef, ExtendedActorSystem, Extension}
-import akka.io.UdpConnected.Event
-import cakesolutions.syntax.QueryLanguage.Query
-import cakesolutions.syntax.QueryParser
+import cakesolutions.syntax.{QueryLanguage, QueryParser}
+import com.codecommit.gll.Success
 
-class AkkaMonitor(system: ExtendedActorSystem) extends Extension {
+class AkkaMonitor(extSystem: ExtendedActorSystem) extends Extension {
 
   /**
-   * Factory method for creating LDL query monitors.
+   * Factory method for creating LDL query monitors. Monitoring notifications are sent to event actor sender.
    *
    * e.g. {{{
-   *      monitor """
+   *      query """
    *        [true] ff
-   *      """ using probe
+   *      """
    * }}}
    *
-   * @param query query that is to be monitored (in real-time).
-   * @param probe monitoring notifications (in response to events) are sent to this actor.
-   * @return cancellable instance.
+   * @param formula query that is to be monitored, on this actor system, in real-time.
+   * @return monitoring actor that events are to be sent to.
    */
-  def monitor(query: String): { def using(probe: ActorRef): { def cancel(): Boolean } } = {
-    val parsedQuery = new QueryParser(query).Query.run().get // FIXME: to throw an exception or not?
-    new MonitorWith(parsedQuery)
-  }
-
-  private class MonitorWith private[monitor] (query: Query) {
-
-    private[this] var monitor: Option[ActorRef] = Option.empty
-
-    /**
-     * Method to terminate query monitoring.
-     *
-     * @return true iff monitor was successfully terminated.
-     */
-    def cancel(): Boolean = {
-      val result = monitor.forall(system.eventStream.unsubscribe(_, classOf[Event]))
-      monitor.foreach(system.stop)
-      monitor = Option.empty
-      result
-    }
-
-    /**
-     * Add an actor probe to this monitoring instance. All monitored notifications will be sent to this probe actor.
-     *
-     * @param probe monitoring notifications (in response to events) are sent to this actor.
-     * @return cancellable instance.
-     */
-    def using(probe: ActorRef): { def cancel(): Boolean } = {
-      monitor = Some(system.actorOf(CVC4Prover.props(query)))
-      monitor.foreach(system.eventStream.subscribe(_, classOf[Event])) // FIXME: need to scope per CVC4 instance!
-
-      this
-    }
-
+  def query(formula: String): ActorRef = {
+    // FIXME:
+    extSystem.actorOf(CVC4Prover.props(QueryParser.Query(formula).head.asInstanceOf[Success[QueryLanguage.Query]].value))
   }
 
 }

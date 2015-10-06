@@ -1,5 +1,6 @@
 package cakesolutions.model
 
+import cakesolutions.syntax.QueryLanguage
 import cakesolutions.syntax.QueryLanguage._
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
@@ -11,8 +12,8 @@ trait ModelGenerators {
   val defaultDepth = 3
 
   val GroundFactGen: Gen[GroundFact] = for {
-    name <- arbitrary[String]
-  } yield new GroundFact(name) { override def toString = name }
+    name <- Gen.identifier if !QueryLanguage.keywords.contains(name)
+  } yield new GroundFact(name)
 
   val FactGen: Gen[Fact] = frequency(
     1 -> (for { fact <- GroundFactGen } yield fact),

@@ -33,7 +33,7 @@ trait StandardEvaluation {
       results.contains(true)
   }
 
-  def evaluateQuery(query: Query)(event: Event): Notification = {
+  def evaluateQuery(query: Query)(event: ObservableEvent): Notification = {
     val state = event.observation
     val lastState = event.isInstanceOf[Completed]
 
