@@ -1,8 +1,9 @@
 package cakesolutions.monitor
 
 import akka.actor.{ActorRef, ExtendedActorSystem, Extension}
-import cakesolutions.syntax.{QueryLanguage, QueryParser}
-import com.codecommit.gll.Success
+import cakesolutions.syntax.QueryLanguage.Query
+import cakesolutions.syntax.QueryParser
+import com.codecommit.gll.{LineNil, Success}
 
 class AkkaMonitor(extSystem: ExtendedActorSystem) extends Extension {
 
@@ -16,11 +17,16 @@ class AkkaMonitor(extSystem: ExtendedActorSystem) extends Extension {
    * }}}
    *
    * @param formula query that is to be monitored, on this actor system, in real-time.
-   * @return monitoring actor that events are to be sent to.
+   * @return (optional) monitoring actor that events are to be sent to.
    */
-  def query(formula: String): ActorRef = {
-    // FIXME:
-    extSystem.actorOf(CVC4Prover.props(QueryParser.Query(formula).head.asInstanceOf[Success[QueryLanguage.Query]].value))
+  def query(formula: String): Option[ActorRef] = {
+    QueryParser.Query(formula).headOption.flatMap {
+      case Success(query: Query, LineNil) =>
+        Some(extSystem.actorOf(CVC4Prover.props(query)))
+
+      case _ =>
+        None
+    }
   }
 
 }

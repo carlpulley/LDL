@@ -36,7 +36,7 @@ class ExtensionTest
         |""".stripMargin
       )
 
-      trace.foreach(obs ! _)
+      trace.foreach(msg => obs.map(_ ! msg))
 
       probe.expectMsg(StableValue(false))
     }
