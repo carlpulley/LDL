@@ -23,15 +23,15 @@ trait ModelGenerators {
   def PropositionGen(depth: Int = defaultDepth): Gen[Proposition] = frequency(
     1 -> Gen.oneOf(True, False),
     5 -> (for { fact <- Gen.lzy(FactGen) } yield Assert(fact)),
-    1 -> (for { fact1 <- Gen.lzy(PropositionGen(depth-1)); fact2 <- Gen.lzy(PropositionGen(depth-1)) } yield Conjunction(fact1, fact2)),
-    1 -> (for { fact1 <- Gen.lzy(PropositionGen(depth-1)); fact2 <- Gen.lzy(PropositionGen(depth-1)) } yield Disjunction(fact1, fact2))
+    1 -> (for { fact1 <- Gen.lzy(PropositionGen(depth-1)); fact2 <- Gen.lzy(PropositionGen(depth-1)); facts <- Gen.lzy(Gen.listOf(PropositionGen(depth-1))) } yield Conjunction(fact1, fact2, facts: _*)),
+    1 -> (for { fact1 <- Gen.lzy(PropositionGen(depth-1)); fact2 <- Gen.lzy(PropositionGen(depth-1)); facts <- Gen.lzy(Gen.listOf(PropositionGen(depth-1))) } yield Disjunction(fact1, fact2, facts: _*))
   )
 
   def PathGen(depth: Int = defaultDepth): Gen[Path] = frequency(
     5 -> Gen.lzy(PropositionGen(depth-1)).map(AssertFact),
     5 -> Gen.lzy(QueryGen(depth-1)).map(Test),
-    1 -> (for { path1 <- Gen.lzy(PathGen(depth-1)); path2 <- Gen.lzy(PathGen(depth-1)) } yield Choice(path1, path2)),
-    1 -> (for { path1 <- Gen.lzy(PathGen(depth-1)); path2 <- Gen.lzy(PathGen(depth-1)) } yield Sequence(path1, path2)),
+    1 -> (for { path1 <- Gen.lzy(PathGen(depth-1)); path2 <- Gen.lzy(PathGen(depth-1)); paths <- Gen.lzy(Gen.listOf(PathGen(depth-1))) } yield Choice(path1, path2, paths: _*)),
+    1 -> (for { path1 <- Gen.lzy(PathGen(depth-1)); path2 <- Gen.lzy(PathGen(depth-1)); paths <- Gen.lzy(Gen.listOf(PathGen(depth-1))) } yield Sequence(path1, path2, paths: _*)),
     5 -> Gen.lzy(PathGen(depth-1)).map(Repeat)
   )
 
@@ -39,8 +39,8 @@ trait ModelGenerators {
     5 -> (for { fact <- Gen.lzy(PropositionGen(depth-1)) } yield Formula(fact)),
     5 -> Gen.const(TT),
     5 -> Gen.const(FF),
-    1 -> (for { query1 <- Gen.lzy(QueryGen(depth-1)); query2 <- Gen.lzy(QueryGen(depth-1)) } yield And(query1, query2)),
-    1 -> (for { query1 <- Gen.lzy(QueryGen(depth-1)); query2 <- Gen.lzy(QueryGen(depth-1)) } yield Or(query1, query2)),
+    1 -> (for { query1 <- Gen.lzy(QueryGen(depth-1)); query2 <- Gen.lzy(QueryGen(depth-1)); queries <- Gen.lzy(Gen.listOf(QueryGen(depth-1))) } yield And(query1, query2, queries: _*)),
+    1 -> (for { query1 <- Gen.lzy(QueryGen(depth-1)); query2 <- Gen.lzy(QueryGen(depth-1)); queries <- Gen.lzy(Gen.listOf(QueryGen(depth-1))) } yield Or(query1, query2, queries: _*)),
     5 -> (for { path <- Gen.lzy(PathGen(depth-1)); query <- Gen.lzy(QueryGen(depth-1)) } yield Exists(path, query)),
     5 -> (for { path <- Gen.lzy(PathGen(depth-1)); query <- Gen.lzy(QueryGen(depth-1)) } yield All(path, query))
   )
