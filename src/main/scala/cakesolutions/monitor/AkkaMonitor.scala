@@ -1,9 +1,10 @@
 package cakesolutions.monitor
 
 import akka.actor.{ActorRef, ExtendedActorSystem, Extension}
-import cakesolutions.syntax.QueryLanguage.Query
 import cakesolutions.syntax.QueryParser
-import com.codecommit.gll.{LineNil, Success}
+import cakesolutions.syntax.QueryLanguage.Query
+
+import scala.util.Success
 
 class AkkaMonitor(extSystem: ExtendedActorSystem) extends Extension {
 
@@ -20,8 +21,8 @@ class AkkaMonitor(extSystem: ExtendedActorSystem) extends Extension {
    * @return (optional) monitoring actor that events are to be sent to.
    */
   def query(formula: String): Option[ActorRef] = {
-    QueryParser.Query(formula).headOption.flatMap {
-      case Success(query: Query, LineNil) =>
+    QueryParser.query(formula) match {
+      case Success(query: Query) =>
         Some(extSystem.actorOf(CVC4Prover.props(query)))
 
       case _ =>

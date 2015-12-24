@@ -1,10 +1,9 @@
 import sbt._
-import Keys._
 
 object Dependencies {
 
   object akka {
-    val version = "2.4.0"
+    val version = "2.4.1"
 
     val actor = "com.typesafe.akka"   %% "akka-actor"   % version
     val slf4j = "com.typesafe.akka"   %% "akka-slf4j"   % version
@@ -26,7 +25,6 @@ object Dependencies {
   }
 
   val async          = "org.scala-lang.modules" %% "scala-async"              % "0.9.3"
-  val gll            = "com.codecommit"         %% "gll-combinators"          % "2.2"
   val logback        = "ch.qos.logback"         %  "logback-classic"          % "1.1.2"
   val typesafeConfig = "com.typesafe"           %  "config"                   % "1.3.0"
 

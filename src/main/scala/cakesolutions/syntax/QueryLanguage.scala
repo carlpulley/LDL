@@ -1,5 +1,7 @@
 package cakesolutions.syntax
 
+import scala.annotation.varargs
+
 object QueryLanguage {
 
   /**
@@ -15,7 +17,7 @@ object QueryLanguage {
   sealed trait Fact
 
   case class Neg(fact: GroundFact) extends Fact {
-    override def toString = s"~$fact"
+    override def toString = s"(!$fact)"
   }
 
   /**
@@ -57,10 +59,12 @@ object QueryLanguage {
     override def toString = fact.toString
   }
 
+  @varargs
   case class Conjunction(fact1: Proposition, fact2: Proposition, remainingFacts: Proposition*) extends Proposition {
     override def toString = (fact1 +: fact2 +: remainingFacts).mkString("(", " && ", ")")
   }
 
+  @varargs
   case class Disjunction(fact1: Proposition, fact2: Proposition, remainingFacts: Proposition*) extends Proposition {
     override def toString = (fact1 +: fact2 +: remainingFacts).mkString("(", " || ", ")")
   }
@@ -98,10 +102,12 @@ object QueryLanguage {
     override def toString = s"($query ?)"
   }
 
+  @varargs
   case class Choice(path1: Path, path2: Path, remaining: Path*) extends Path {
     override def toString = (path1 +: path2 +: remaining).mkString("(", " + ", ")")
   }
 
+  @varargs
   case class Sequence(path1: Path, path2: Path, remaining: Path*) extends Path {
     override def toString = (path1 +: path2 +: remaining).mkString("(", "; ", ")")
   }
@@ -150,10 +156,12 @@ object QueryLanguage {
     override def toString = "FF"
   }
 
+  @varargs
   case class And(query1: Query, query2: Query, remainingQueries: Query*) extends Query {
     override def toString = (query1 +: query2 +: remainingQueries).mkString("(", " && ", ")")
   }
 
+  @varargs
   case class Or(query1: Query, query2: Query, remainingQueries: Query*) extends Query {
     override def toString = (query1 +: query2 +: remainingQueries).mkString("(", " || ", ")")
   }
@@ -167,11 +175,11 @@ object QueryLanguage {
    * @param query query that is to hold at end of a path prefix
    */
   case class Exists(path: Path, query: Query) extends Query {
-    override def toString = s"<$path> $query"
+    override def toString = s"(<$path> $query)"
   }
 
   case class All(path: Path, query: Query) extends Query {
-    override def toString = s"[$path] $query"
+    override def toString = s"([$path] $query)"
   }
 
   /**

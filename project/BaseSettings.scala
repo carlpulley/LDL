@@ -1,5 +1,5 @@
-import sbt._
-import Keys._
+import sbt.Keys._
+import sbt.{Build => _, _}
 
 /**
  * Defines settings for the projects:
