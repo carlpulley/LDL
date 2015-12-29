@@ -3,6 +3,7 @@ package cakesolutions.model.provers
 import cakesolutions.syntax.QueryLanguage
 import com.typesafe.config.Config
 import edu.nyu.acsys.CVC4._
+
 import scala.async.Async._
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -20,7 +21,9 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 class CVC4(config: Config) extends Interface {
 
-  System.load(config.getString("prover.cvc.library"))
+  for (library <- config.getStringList("prover.cvc4.library")) {
+    System.load(library)
+  }
 
   import QueryLanguage._
 
@@ -44,7 +47,7 @@ class CVC4(config: Config) extends Interface {
     case prop: Assert =>
       if (!propMapping.contains(prop)) {
         // Ensure both +ve and -ve forms of sensor assertion are represented by propositions
-        val newProp = s"sensor_$propCount"
+        val newProp = s"fact_$propCount"
         propCount += 1
         // CVC4 distinguishes variables by their memory instance, so we store freshly generated propositions for latter usage
         propMapping += (prop -> em.mkVar(newProp, em.booleanType()), not(prop) -> em.mkVar(s"not_$newProp", em.booleanType()))
@@ -195,6 +198,14 @@ class CVC4(config: Config) extends Interface {
       case Result.Validity.VALIDITY_UNKNOWN =>
         Future.failed(new RuntimeException(s"Failed to determine if $query was valid or not"))
     }
+  }
+
+  def reset(): Unit = {
+    queryCount = 0
+    queryMapping.clear()
+    propCount = 0
+    propMapping.clear()
+    smt.reset()
   }
 
   def statistics: Map[String, String] = {

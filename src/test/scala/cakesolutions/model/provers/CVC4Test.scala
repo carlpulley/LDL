@@ -14,6 +14,7 @@ class CVC4Test
   with PropertyChecks
   with Matchers
   with concurrent.ScalaFutures
+  with BeforeAndAfter
   with ModelGenerators {
 
   import QueryLanguage._
@@ -21,6 +22,10 @@ class CVC4Test
   val cvc4 = new CVC4(ConfigFactory.load("prover.conf"))
 
   val delta = 1.nanosecond
+
+  after {
+    cvc4.reset()
+  }
 
   property(s"valid(p) result computed within ${delta.toNanos} nanosecond") {
     forAll(QueryGen()) { (query: Query) =>

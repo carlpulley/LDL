@@ -1,7 +1,7 @@
 Source: cvc4
 Priority: extra
 Maintainer: Carl Pulley <carlp@cakesolutions.net>
-Build-Depends: debhelper (>= 8), autotools-dev, libgmp-dev, gawk | awk, libantlr3c-dev (>= 3.2), libboost-thread-dev, swig2.0, openjdk-7-jdk, python-minimal
+Build-Depends: debhelper (>= 8), autotools-dev, libgmp-dev, gawk | awk, libantlr3c-dev (>= 3.2), libboost-thread-dev, swig2.0, openjdk-7-jdk | oracle-java8-installer, python-minimal
 Standards-Version: 3.9.5
 Section: math
 Homepage: http://cvc4.cs.nyu.edu/
@@ -59,7 +59,7 @@ Description: CVC4 parser dynamic libraries
 Package: libcvc4bindings-java3
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, openjdk-7-jdk | oracle-java8-installer
 Description: CVC4 Java bindings
  This package contains the CVC4 Java bindings.  "CVC4.so" and "CVC4.jar"
  contain the Java API that allows CVC4 to support Java programs.

@@ -1,0 +1,40 @@
+Source: z3
+Section: math
+Priority: optional
+Maintainer: Carl Pulley <carlp@cakesolutions.net>
+Build-Depends: debhelper (>= 9.0.0), python (>= 2.7.3), oracle-java8-installer
+Standards-Version: 3.9.4
+Homepage: https://github.com/Z3Prover/z3
+
+Package: z3
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: An SMT solver from Microsoft Research
+ Z3 is a SMT solver from Microsoft Research. It supports
+ multiple input formats including smt, smt2 (see http://smt-lib.org)
+ Datalog and DIMACS.
+
+Package: libz3
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Shared library for Z3 SMT solver from Microsoft Research
+
+Package: libz3-dev
+Architecture: amd64
+Depends: libz3 (= ${binary:Version})
+Description: Z3 library C/C++ header files
+
+Package: python-z3
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libz3 (= ${binary:Version}), python (>= 2.7.3)
+Description: Python 2 bindings for the Z3 SMT solver from Microsoft Research
+
+Package: python3-z3
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libz3 (= ${binary:Version}), python3
+Description: Python 3 bindings for the Z3 SMT solver from Microsoft Research
+
+Package: z3-java
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libz3 (= ${binary:Version}), oracle-java8-installer
+Description: Java bindings for the Z3 SMT solver from Microsoft Research

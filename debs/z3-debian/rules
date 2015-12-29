@@ -1,0 +1,33 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# FIXME: Should be using dh_pysupport. READ: /usr/share/doc/python-support/README.gz
+
+DEB_INST := $(CURDIR)/debian/tmp/
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	python2 scripts/mk_make.py \
+		--prefix=/usr \
+		--java
+
+override_dh_auto_build:
+	cd build && $(MAKE)
+
+override_dh_auto_install:
+	cd build && $(MAKE) install DESTDIR=$(DEB_INST)
+	# HACK: Copy over the python2.7 files for the python3 package, ``-a`` preserves the symlink to libz3.so
+	# this hack assumes we built using python2
+	cp -ar $(DEB_INST)/usr/lib/python2.7 $(DEB_INST)/usr/lib/python3
+
+override_dh_clean:
+	rm -rf build/
+
+override_dh_install:
+    # If we failed to copy a file into one of the packages I want to know about it!
+	dh_install --fail-missing

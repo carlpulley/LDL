@@ -25,20 +25,32 @@ trait Interface {
    *
    * @param query query to be rewritten/simplified by applying propositional rules of reasoning
    */
-  protected def simplify(query: Query)(implicit ec: ExecutionContext): Future[Query]
+  def simplify(query: Query)(implicit ec: ExecutionContext): Future[Query]
 
   /**
    * Function that interacts with an SMT prover and determines if the query is satisfiable or not.
    *
    * @param query LDL formula that is treated as being propositional
    */
-  protected def satisfiable(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
+  def satisfiable(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
 
   /**
    * Function that interacts with an SMT prover and determines if the query is valid or not.
    *
    * @param query LDL formula that is treated as being propositional
    */
-  protected def valid(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
+  def valid(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
+
+  /**
+   * Function to reset underlying SMT prover.
+   */
+  def reset(): Unit
+
+  /**
+   * Function that returns prover related statistics.
+   *
+   * @return Map of labeled statistical values
+   */
+  def statistics: Map[String, String]
 
 }
