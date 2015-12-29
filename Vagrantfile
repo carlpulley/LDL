@@ -31,9 +31,13 @@ Vagrant.configure(2) do |config|
     #   - tools/packages necessary to build CVC4 and Debian packages
     config.vm.provision "shell", inline: <<-SHELL
       echo "deb http://dl.bintray.com/sbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt.list
+      sudo add-apt-repository ppa:webupd8team/java -y
       sudo apt-get -y update
+      echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo tee /usr/bin/debconf-set-selections
+      sudo apt-get install -y oracle-java8-installer
+      sudo update-java-alternatives -s java-8-oracle
       sudo apt-get install -y git autoconf libtool build-essential devscripts debhelper
-      sudo apt-get install -y libgmp-dev antlr3 libantlr3c-dev libboost-dev libboost-thread-dev swig2.0 libcln-dev openjdk-7-jdk
+      sudo apt-get install -y libgmp-dev antlr3 libantlr3c-dev libboost-dev libboost-thread-dev swig2.0 libcln-dev
       sudo apt-get install -y --force-yes sbt cxxtest
 
       mkdir /tmp/cvc4
@@ -71,9 +75,12 @@ EOF
     #   https://github.com/CVC4/CVC4
     config.vm.provision "shell", inline: <<-SHELL
       echo "deb http://dl.bintray.com/sbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt.list
+      sudo add-apt-repository ppa:webupd8team/java -y
       sudo apt-get -y update
       sudo apt-get install -y git
-      sudo apt-get install -y openjdk-7-jdk
+      echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo tee /usr/bin/debconf-set-selections
+      sudo apt-get install -y oracle-java8-installer
+      sudo update-java-alternatives -s java-8-oracle
       sudo apt-get install -y --force-yes sbt libantlr3c-3.2-0
       sudo dpkg -R -i /vagrant/debs
     SHELL

@@ -5,13 +5,14 @@ import cakesolutions.syntax.QueryLanguage
 import com.typesafe.config.ConfigFactory
 import org.scalatest._
 import org.scalatest.prop._
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 class CVC4Test
   extends PropSpec
   with PropertyChecks
   with Matchers
-  with BeforeAndAfterAll
   with concurrent.ScalaFutures
   with ModelGenerators {
 
@@ -19,10 +20,17 @@ class CVC4Test
 
   val cvc4 = new CVC4(ConfigFactory.load("prover.conf"))
 
-  override def afterAll() {
-    println("CVC4 prover statistics:")
-    for ((key, value) <- cvc4.statistics) {
-      println(s"$key = $value")
+  val delta = 1.nanosecond
+
+  property(s"valid(p) result computed within ${delta.toNanos} nanosecond") {
+    forAll(QueryGen()) { (query: Query) =>
+      assert(cvc4.valid(query).isReadyWithin(delta))
+    }
+  }
+
+  property(s"satisfiable(p) result computed within ${delta.toNanos} nanosecond") {
+    forAll(QueryGen()) { (query: Query) =>
+      assert(cvc4.satisfiable(query).isReadyWithin(delta))
     }
   }
 
