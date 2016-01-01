@@ -1,5 +1,5 @@
 import sbt.Keys._
-import sbt.{Build => _, _}
+import sbt._
 
 /**
  * Defines settings for the projects:
@@ -17,7 +17,7 @@ object BaseSettings {
     Seq(
       organization := "cakesolutions.net",
       scalaVersion := "2.11.7",
-      version := Build.generateVersion("0", "1", Build.SNAPSHOT),
+      version := ProjectBuild.generateVersion("0", "1", ProjectBuild.SNAPSHOT),
       scalacOptions in Compile ++= Seq("-encoding", "UTF-8", "-target:jvm-1.8", "-deprecation", "-unchecked", "-Ywarn-dead-code", "-feature"),
       scalacOptions in (Compile, doc) <++= (name in (Compile, doc), version in (Compile, doc)) map DefaultOptions.scaladoc,
       javacOptions in (Compile, compile) ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation", "-Xlint:-options"),

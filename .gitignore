@@ -142,5 +142,7 @@ target
 journal
 snapshots
 
-
 checkpoint
+
+*.log
+

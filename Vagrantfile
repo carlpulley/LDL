@@ -17,8 +17,8 @@ Z3_VERSION = ENV["Z3_VERSION"] || "master"
 ENVIRONMENT = ENV["ENVIRONMENT"] || "development"
 
 Vagrant.configure(2) do |config|
-  config.vm.box = "ubuntu-trusty64"
-  config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+  config.vm.box = "ubuntu-vivid64"
+  config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/vivid/current/vivid-server-cloudimg-amd64-vagrant-disk1.box"
 
   config.vm.provider "virtualbox" do |vb|
     # Customize the amount of memory on the VM:
@@ -37,18 +37,16 @@ Vagrant.configure(2) do |config|
     #   - tools/packages necessary to build CVC4, Z3 and Debian packages
     config.vm.provision "shell", inline: <<-SHELL
       echo "deb http://dl.bintray.com/sbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt.list
-
-      sudo add-apt-repository ppa:webupd8team/java -y
+      sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
       sudo apt-get -y update
-      sudo apt-get install -y openjdk-7-jdk
-      echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo /usr/bin/debconf-set-selections
-      sudo apt-get install -y oracle-java8-installer
-      sudo apt-get install oracle-java8-set-default
+
+      sudo apt-get install -y openjdk-7-jdk openjdk-8-jdk
 
       sudo apt-get install -y git autoconf libtool build-essential devscripts debhelper
       sudo apt-get install -y libgmp-dev antlr3 libantlr3c-dev libboost-dev libboost-thread-dev swig2.0 libcln-dev
       sudo apt-get install -y --force-yes sbt cxxtest
 
+      sudo update-java-alternatives -s java-1.7.0-openjdk-amd64
       mkdir /tmp/cvc4
       cd /tmp/cvc4
       wget https://github.com/CVC4/CVC4/archive/#{CVC4_VERSION}.tar.gz
@@ -66,13 +64,13 @@ cvc4 (#{CVC4_DEBVERSION}-1) unstable; urgency=low
 EOF
       debuild -j2 -us -uc
 
-      cp ./builds/*/production-proof/src/bindings/CVC4.jar /vagrant/lib
+      cp ./builds/*/production-proof/src/bindings/CVC4.jar /vagrant/core/lib
       cp ../cvc4_*.deb /vagrant/debs
       cp ../libcvc4-3_*.deb /vagrant/debs
       cp ../libcvc4bindings-java3_*.deb /vagrant/debs
       cp ../libcvc4parser3_*.deb /vagrant/debs
 
-      sudo update-java-alternatives -s java-8-oracle
+      sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
       mkdir /tmp/z3
       cd /tmp/z3
       wget https://github.com/Z3Prover/z3/archive/#{Z3_VERSION}.tar.gz
@@ -90,7 +88,7 @@ z3 (#{Z3_DEBVERSION}-1) unstable; urgency=low
 EOF
       debuild -j2 -us -uc
 
-      cp ./build/com.microsoft.z3.jar /vagrant/lib/
+      cp ./build/com.microsoft.z3.jar /vagrant/core/lib/
       cp ../z3_*.deb /vagrant/debs
       cp ../z3-java_*.deb /vagrant/debs
       cp ../python-z3_*.deb /vagrant/debs
@@ -113,12 +111,11 @@ EOF
     #   and https://github.com/Z3Prover/z3
     config.vm.provision "shell", inline: <<-SHELL
       echo "deb http://dl.bintray.com/sbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt.list
-
-      sudo add-apt-repository ppa:webupd8team/java -y
+      sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 642AC823
       sudo apt-get -y update
-      echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo /usr/bin/debconf-set-selections
-      sudo apt-get install -y oracle-java8-installer
-      sudo update-java-alternatives -s java-8-oracle
+
+      sudo apt-get install -y openjdk-8-jdk
+      sudo update-java-alternatives -s java-1.8.0-openjdk-amd64
 
       sudo apt-get install -y git
       sudo apt-get install -y --force-yes sbt libantlr3c-3.2-0
