@@ -1,6 +1,5 @@
 package cakesolutions.model
 
-import akka.actor.ActorRef
 import cakesolutions.syntax.QueryLanguage
 
 object QueryModel {
@@ -15,10 +14,9 @@ object QueryModel {
   sealed trait Event
   sealed trait ObservableEvent extends Event {
     def observation: Observation
-    def replyTo: ActorRef
   }
-  case class Next(observation: Observation, replyTo: ActorRef) extends ObservableEvent
-  case class Completed(observation: Observation, replyTo: ActorRef) extends ObservableEvent
+  case class Next(observation: Observation) extends ObservableEvent
+  case class Completed(observation: Observation) extends ObservableEvent
   case object Cancel extends Event
 
   /**
