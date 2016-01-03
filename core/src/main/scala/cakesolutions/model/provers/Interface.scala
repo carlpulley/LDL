@@ -9,6 +9,13 @@ trait Interface {
   import QueryLanguage._
 
   /**
+   * Function that allows a set of queries to be added as assumptions to the SMT prover engine.
+   *
+   * @param queries sequence of queries that we are to assume
+   */
+  def assume(queries: Query*): Unit
+
+  /**
    * Function that treats the query as a propositional formula (so, path expressions are taken to be "propositional")
    * and rewrites it by simplifying it.
    *

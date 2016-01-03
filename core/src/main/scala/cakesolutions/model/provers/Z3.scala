@@ -141,6 +141,10 @@ class Z3(config: Config) extends Interface {
     }
   }
 
+  def assume(queries: Query*): Unit = {
+    solver.add(queries.map(queryToExpr): _*)
+  }
+
   def simplify(query: Query): Try[Query] = {
     exprToQuery(queryToExpr(query).simplify().asInstanceOf[BoolExpr])
   }

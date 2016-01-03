@@ -183,6 +183,12 @@ class CVC4(config: Config) extends Interface {
     }
   }
 
+  def assume(queries: Query*): Unit = {
+    for (query <- queries) {
+      smt.assertFormula(queryToExpr(query))
+    }
+  }
+
   def simplify(query: Query): Try[Query] = {
     exprToQuery(smt.simplify(queryToExpr(query)))
   }
