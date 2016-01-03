@@ -5,17 +5,17 @@ import cakesolutions.syntax.QueryLanguage.Query
 import cakesolutions.syntax.QueryParser
 
 import scala.reflect.ClassTag
-import scala.util.Success
+import scala.util.{Failure, Success, Try}
 
 class RuntimeMonitor(system: ExtendedActorSystem) extends Extension {
 
-  def actorOf[T : ClassTag](props: Props)(sessionType: String): Option[ActorRef] = {
+  def actorOf[T : ClassTag](props: Props)(sessionType: String): Try[ActorRef] = {
     Setup.checker(sessionType).map { ref =>
       Setup.probe[T](props, ref)(sessionType)
     }
   }
 
-  def actorOf[T : ClassTag](props: Props, name: String)(sessionType: String): Option[ActorRef] = {
+  def actorOf[T : ClassTag](props: Props, name: String)(sessionType: String): Try[ActorRef] = {
     Setup.checker(sessionType).map { ref =>
       Setup.probe[T](props, ref, name)(sessionType)
     }
@@ -30,13 +30,13 @@ class RuntimeMonitor(system: ExtendedActorSystem) extends Extension {
       system.actorOf(Probe.props[T](props, monitor, sessionType), name)
 
     // TODO: need to extract query from `sessionType`
-    def checker(sessionType: String): Option[ActorRef] = {
+    def checker(sessionType: String): Try[ActorRef] = {
       QueryParser.query(sessionType) match {
         case Success(query: Query) =>
-          Some(system.actorOf(Checker.props(query)))
+          Success(system.actorOf(Checker.props(query)))
 
-        case _ =>
-          None
+        case Failure(exn) =>
+          Failure(exn)
       }
     }
 

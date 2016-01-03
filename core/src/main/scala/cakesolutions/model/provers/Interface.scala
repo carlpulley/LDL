@@ -2,7 +2,7 @@ package cakesolutions.model.provers
 
 import cakesolutions.syntax.QueryLanguage
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 trait Interface {
 
@@ -14,21 +14,21 @@ trait Interface {
    *
    * @param query query to be rewritten/simplified by applying propositional rules of reasoning
    */
-  def simplify(query: Query)(implicit ec: ExecutionContext): Future[Query]
+  def simplify(query: Query): Try[Query]
 
   /**
    * Function that interacts with an SMT prover and determines if the query is satisfiable or not.
    *
    * @param query LDL formula that is treated as being propositional
    */
-  def satisfiable(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
+  def satisfiable(query: Query): Try[Boolean]
 
   /**
    * Function that interacts with an SMT prover and determines if the query is valid or not.
    *
    * @param query LDL formula that is treated as being propositional
    */
-  def valid(query: Query)(implicit ec: ExecutionContext): Future[Boolean]
+  def valid(query: Query): Try[Boolean]
 
   /**
    * Function to reset underlying SMT prover.

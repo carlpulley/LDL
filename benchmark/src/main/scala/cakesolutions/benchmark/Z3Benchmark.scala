@@ -9,8 +9,6 @@ import com.typesafe.config.ConfigFactory
 import org.openjdk.jmh.annotations._
 import org.openjdk.jmh.infra.Blackhole
 
-import scala.concurrent.ExecutionContext
-
 @State(Scope.Benchmark)
 @BenchmarkMode(Array(Mode.All))
 @Fork(1)
@@ -18,8 +16,6 @@ import scala.concurrent.ExecutionContext
 @Warmup(iterations = 10, time = 5, timeUnit = TimeUnit.SECONDS, batchSize = 1)
 @Measurement(iterations = 20)
 class Z3Benchmark extends ModelGenerators {
-
-  val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(1))
 
   var z3: Option[Z3] = None
 
@@ -49,19 +45,19 @@ class Z3Benchmark extends ModelGenerators {
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testValidity(bh: Blackhole): Unit = {
-    bh.consume(z3.flatMap(p => query.map(p.valid(_)(ec))))
+    bh.consume(z3.flatMap(p => query.map(p.valid)))
   }
 
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testSatisfiability(bh: Blackhole): Unit = {
-    bh.consume(z3.flatMap(p => query.map(p.satisfiable(_)(ec))))
+    bh.consume(z3.flatMap(p => query.map(p.satisfiable)))
   }
 
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testSimplify(bh: Blackhole): Unit = {
-    bh.consume(z3.flatMap(p => query.map(p.simplify(_)(ec))))
+    bh.consume(z3.flatMap(p => query.map(p.simplify)))
   }
 
 }

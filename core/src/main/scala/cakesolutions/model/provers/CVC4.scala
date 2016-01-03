@@ -4,10 +4,9 @@ import cakesolutions.syntax.QueryLanguage
 import com.typesafe.config.Config
 import edu.nyu.acsys.CVC4._
 
-import scala.async.Async._
 import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 /**
  * CVC4 Install Instructions (for OS X with brew 'support'):
@@ -111,92 +110,108 @@ class CVC4(config: Config) extends Interface {
       queryMapping(query)
   }
 
-  private def exprToQuery(expr: Expr)(implicit ec: ExecutionContext): Future[Query] = {
+  private def exprToQuery(expr: Expr): Try[Query] = {
     if (expr.isConst && expr.getType.isBoolean) {
       expr.toString match {
         case "TRUE" =>
-          Future.successful(TT)
+          Success(TT)
 
         case "FALSE" =>
-          Future.successful(FF)
+          Success(FF)
 
         case _ =>
-          Future.failed(new RuntimeException(s"Unrecognised boolean constant: $expr"))
+          Failure(new RuntimeException(s"Unrecognised boolean constant: $expr"))
       }
     } else if (expr.isVariable && expr.getType.isBoolean) {
       val query = queryMapping.find(_._2.toString == expr.toString).map(_._1)
       val prop = propMapping.find(_._2.toString == expr.toString).map(_._1)
 
       if (query.nonEmpty) {
-        Future.successful(query.get)
+        Success(query.get)
       } else if (prop.nonEmpty) {
-        Future.successful(Formula(prop.get))
+        Success(Formula(prop.get))
       } else {
-        Future.failed(new RuntimeException(s"No propositional mapping exists for expression $expr"))
+        Failure(new RuntimeException(s"No propositional mapping exists for expression $expr"))
       }
     } else {
       expr.getKind match {
         case Kind.AND =>
           if (expr.getNumChildren < 2) {
-            Future.failed(new RuntimeException(s"And expression does not have enough arguments: $expr"))
+            Failure(new RuntimeException(s"And expression does not have enough arguments: $expr"))
           } else {
-            async {
-              val query1 = await(exprToQuery(expr.getChild(0)))
-              val query2 = await(exprToQuery(expr.getChild(1)))
-              val remaining = await(Future.sequence((2 until expr.getNumChildren.toInt).map(n => exprToQuery(expr.getChild(n))))).toSeq
+            for {
+              query1 <- exprToQuery(expr.getChild(0))
+              query2 <- exprToQuery(expr.getChild(1))
+              remainingQueries = (2 until expr.getNumChildren.toInt).map(n => exprToQuery(expr.getChild(n)))
+              remaining <- remainingQueries.foldLeft[Try[Seq[Query]]](Success(Seq.empty)) {
+                case (result @ Failure(_), _) =>
+                  result
 
-              And(query1, query2, remaining: _*)
-            }
+                case (_, Failure(exn)) =>
+                  Failure(exn)
+
+                case (Success(data), Success(result)) =>
+                  Success(data :+ result)
+              }
+            } yield And(query1, query2, remaining: _*)
           }
 
         case Kind.OR =>
           if (expr.getNumChildren < 2) {
-            Future.failed(new RuntimeException(s"Or expression does not have enough arguments: $expr"))
+            Failure(new RuntimeException(s"Or expression does not have enough arguments: $expr"))
           } else {
-            async {
-              val query1 = await(exprToQuery(expr.getChild(0)))
-              val query2 = await(exprToQuery(expr.getChild(1)))
-              val remaining = await(Future.sequence((2 until expr.getNumChildren.toInt).map(n => exprToQuery(expr.getChild(n))))).toSeq
+            for {
+              query1 <- exprToQuery(expr.getChild(0))
+              query2 <- exprToQuery(expr.getChild(1))
+              remainingQueries = (2 until expr.getNumChildren.toInt).map(n => exprToQuery(expr.getChild(n)))
+              remaining <- remainingQueries.foldLeft[Try[Seq[Query]]](Success(Seq.empty)) {
+                case (result @ Failure(_), _) =>
+                  result
 
-              Or(query1, query2, remaining: _*)
-            }
+                case (_, Failure(exn)) =>
+                  Failure(exn)
+
+                case (Success(data), Success(result)) =>
+                  Success(data :+ result)
+              }
+            } yield Or(query1, query2, remaining: _*)
           }
 
         case _ =>
-          Future.failed(new RuntimeException(s"Unrecognised expression kind: $expr"))
+          Failure(new RuntimeException(s"Unrecognised expression kind: $expr"))
       }
     }
   }
 
-  def simplify(query: Query)(implicit ec: ExecutionContext): Future[Query] = {
+  def simplify(query: Query): Try[Query] = {
     exprToQuery(smt.simplify(queryToExpr(query)))
   }
 
-  def satisfiable(query: Query)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def satisfiable(query: Query): Try[Boolean] = {
     // Determine if current model state is satisfiable or not
     smt.checkSat(queryToExpr(query)).isSat match {
       case Result.Sat.SAT =>
-        Future.successful(true)
+        Success(true)
 
       case Result.Sat.UNSAT =>
-        Future.successful(false)
+        Success(false)
 
       case Result.Sat.SAT_UNKNOWN =>
-        Future.failed(new RuntimeException(s"Failed to determine if $query was satisfiable or not"))
+        Failure(new RuntimeException(s"Failed to determine if $query was satisfiable or not"))
     }
   }
 
-  def valid(query: Query)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def valid(query: Query): Try[Boolean] = {
     // Determine if current model state is valid or not
     smt.query(queryToExpr(query)).isValid match {
       case Result.Validity.VALID =>
-        Future.successful(true)
+        Success(true)
 
       case Result.Validity.INVALID =>
-        Future.successful(false)
+        Success(false)
 
       case Result.Validity.VALIDITY_UNKNOWN =>
-        Future.failed(new RuntimeException(s"Failed to determine if $query was valid or not"))
+        Failure(new RuntimeException(s"Failed to determine if $query was valid or not"))
     }
   }
 

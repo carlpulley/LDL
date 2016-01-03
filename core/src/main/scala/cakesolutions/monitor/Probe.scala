@@ -47,19 +47,24 @@ class Probe[T : ClassTag](props: Props, monitor: ActorRef, sessionType: String) 
   def receive: Receive = LoggingReceive {
     case Terminated(`monitor`) | Terminated(`wrappedActor`) =>
       log.error(s"Deathwatch detected that one of $monitor or $wrappedActor had stopped")
+      // FIXME: stop or restart?
       context.stop(self)
-      
+
     case StableValue(false) =>
       log.error(s"Stopping $self - runtime monitor falsified session type $sessionType")
       context.stop(self)
+      // TODO: snapshot here?
 
     case _: ObservableEvent =>
       // Intentionally ignore all other observable events
+      // TODO: snapshot here?
 
     case msg: T if transform.isDefinedAt(msg) =>
       wrappedActor.tell(msg, sender())
       monitor ! transform(msg)
+      // TODO: persist received message?
 
+    // FIXME: should we ignore messages or restart the actor with invalid message types?
     case msg: T =>
       throw InvalidMessageType(s"Correctly typed message received, but the Probe's message transform is not defined at $msg")
 

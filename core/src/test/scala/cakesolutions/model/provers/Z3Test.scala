@@ -6,8 +6,9 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest._
 import org.scalatest.prop._
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.Success
 
 class Z3Test
   extends FreeSpec
@@ -27,95 +28,106 @@ class Z3Test
     z3.reset()
   }
 
-  s"valid(p) result computed within ${delta.toNanos} nanosecond" in {
+  s"valid(p) result computed within ${delta.toString()}" in {
     forAll(QueryGen()) { (query: Query) =>
-      assert(z3.valid(query).isReadyWithin(delta))
+      assert(Future.fromTry(z3.valid(query)).isReadyWithin(delta))
     }
   }
 
-  s"satisfiable(p) result computed within ${delta.toNanos} nanosecond" in {
+  s"satisfiable(p) result computed within ${delta.toString()}" in {
     forAll(QueryGen()) { (query: Query) =>
-      assert(z3.satisfiable(query).isReadyWithin(delta))
+      assert(Future.fromTry(z3.satisfiable(query)).isReadyWithin(delta))
+    }
+  }
+
+  s"simplify(p) result computed within ${delta.toString()}" in {
+    forAll(QueryGen()) { (query: Query) =>
+      assert(Future.fromTry(z3.simplify(query)).isReadyWithin(delta))
     }
   }
 
   "valid(p --> p)" in {
     forAll(QueryGen()) { (query: Query) =>
-      assert(z3.valid(Or(QueryLanguage.not(query), query)).futureValue)
+      assert(z3.valid(Or(QueryLanguage.not(query), query)) == Success(true))
     }
   }
 
   "satisfiable(p --> p)" in {
     forAll(QueryGen()) { (query: Query) =>
-      assert(z3.satisfiable(Or(QueryLanguage.not(query), query)).futureValue)
+      assert(z3.satisfiable(Or(QueryLanguage.not(query), query)) == Success(true))
     }
   }
 
   "valid(p & q --> p)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.valid(Or(QueryLanguage.not(And(query1, query2)), query1)).futureValue)
+      assert(z3.valid(Or(QueryLanguage.not(And(query1, query2)), query1)) == Success(true))
     }
   }
 
   "satisfiable(p & q --> p)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.satisfiable(Or(QueryLanguage.not(And(query1, query2)), query1)).futureValue)
+      assert(z3.satisfiable(Or(QueryLanguage.not(And(query1, query2)), query1)) == Success(true))
     }
   }
 
   "valid(p & q --> q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.valid(Or(QueryLanguage.not(And(query1, query2)), query2)).futureValue)
+      assert(z3.valid(Or(QueryLanguage.not(And(query1, query2)), query2)) == Success(true))
     }
   }
 
   "satisfiable(p & q --> q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.satisfiable(Or(QueryLanguage.not(And(query1, query2)), query2)).futureValue)
+      assert(z3.satisfiable(Or(QueryLanguage.not(And(query1, query2)), query2)) == Success(true))
     }
   }
 
   "valid(p --> p | q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.valid(Or(QueryLanguage.not(query1), Or(query1, query2))).futureValue)
+      assert(z3.valid(Or(QueryLanguage.not(query1), Or(query1, query2))) == Success(true))
     }
   }
 
   "satisfiable(p --> p | q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.satisfiable(Or(QueryLanguage.not(query1), Or(query1, query2))).futureValue)
+      assert(z3.satisfiable(Or(QueryLanguage.not(query1), Or(query1, query2))) == Success(true))
     }
   }
 
   "valid(q --> p | q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.valid(Or(QueryLanguage.not(query2), Or(query1, query2))).futureValue)
+      assert(z3.valid(Or(QueryLanguage.not(query2), Or(query1, query2))) == Success(true))
     }
   }
 
   "satisfiable(q --> p | q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.satisfiable(Or(QueryLanguage.not(query2), Or(query1, query2))).futureValue)
+      assert(z3.satisfiable(Or(QueryLanguage.not(query2), Or(query1, query2))) == Success(true))
     }
   }
 
   "valid(p & (p --> q) --> q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.valid(Or(QueryLanguage.not(And(query1, Or(QueryLanguage.not(query1), query2))), query2)).futureValue)
+      assert(z3.valid(Or(QueryLanguage.not(And(query1, Or(QueryLanguage.not(query1), query2))), query2)) == Success(true))
     }
   }
 
   "satisfiable(p & (p --> q) --> q)" in {
     forAll(QueryGen(), QueryGen()) { (query1: Query, query2: Query) =>
-      assert(z3.satisfiable(Or(QueryLanguage.not(And(query1, Or(QueryLanguage.not(query1), query2))), query2)).futureValue)
+      assert(z3.satisfiable(Or(QueryLanguage.not(And(query1, Or(QueryLanguage.not(query1), query2))), query2)) == Success(true))
     }
   }
 
   "valid(p <-> simplify(p))" in {
     forAll(QueryGen()) { (query: Query) =>
-      assert(z3.valid(Or(QueryLanguage.not(query), z3.simplify(query).futureValue)).futureValue)
-      assert(z3.valid(Or(query, z3.simplify(QueryLanguage.not(query)).futureValue)).futureValue)
-      assert(z3.valid(Or(query, QueryLanguage.not(z3.simplify(query).futureValue))).futureValue)
+      for {
+        simplifiedQuery <- z3.simplify(query)
+        simplifiedNotQuery <- z3.simplify(QueryLanguage.not(query))
+      } {
+        assert(z3.valid(Or(QueryLanguage.not(query), simplifiedQuery)) == Success(true))
+        assert(z3.valid(Or(query, simplifiedNotQuery)) == Success(true))
+        assert(z3.valid(Or(query, QueryLanguage.not(simplifiedQuery))) == Success(true))
+      }
     }
   }
 

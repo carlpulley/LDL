@@ -4,9 +4,8 @@ import cakesolutions.syntax.QueryLanguage
 import com.microsoft.z3._
 import com.typesafe.config.Config
 
-import scala.async.Async._
 import scala.collection.mutable
-import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class Z3(config: Config) extends Interface {
 
@@ -48,7 +47,7 @@ class Z3(config: Config) extends Interface {
       ctx.mkOr(or: _*)
   }
 
-  private def queryToExpr(query: Query)(implicit ec: ExecutionContext): BoolExpr = query match {
+  private def queryToExpr(query: Query): BoolExpr = query match {
     case Formula(fact) =>
       propositionToExpr(fact)
 
@@ -81,82 +80,98 @@ class Z3(config: Config) extends Interface {
       queryMapping(query)
   }
 
-  private def exprToQuery(expr: BoolExpr)(implicit ec: ExecutionContext): Future[Query] = {
+  private def exprToQuery(expr: BoolExpr): Try[Query] = {
     if (expr.isTrue) {
-      Future.successful(TT)
+      Success(TT)
     } else if (expr.isFalse) {
-      Future.successful(FF)
+      Success(FF)
     } else if (expr.isConst) {
       val query = queryMapping.find(_._2.toString == expr.toString).map(_._1)
       val prop = propMapping.find(_._2.toString == expr.toString).map(_._1)
 
       if (query.nonEmpty) {
-        Future.successful(query.get)
+        Success(query.get)
       } else if (prop.nonEmpty) {
-        Future.successful(Formula(prop.get))
+        Success(Formula(prop.get))
       } else {
-        Future.failed(new RuntimeException(s"No propositional mapping exists for expression $expr"))
+        Failure(new RuntimeException(s"No propositional mapping exists for expression $expr"))
       }
     } else if (expr.isAnd) {
       if (expr.getNumArgs < 2) {
-        Future.failed(new RuntimeException(s"And expression does not have enough arguments: $expr"))
+        Failure(new RuntimeException(s"And expression does not have enough arguments: $expr"))
       } else {
-        async {
-          val query1 = await(exprToQuery(expr.getArgs()(0).asInstanceOf[BoolExpr]))
-          val query2 = await(exprToQuery(expr.getArgs()(1).asInstanceOf[BoolExpr]))
-          val remaining = await(Future.sequence((2 until expr.getNumArgs).map(n => exprToQuery(expr.getArgs()(n).asInstanceOf[BoolExpr])))).toSeq
+        for {
+          query1 <- exprToQuery(expr.getArgs()(0).asInstanceOf[BoolExpr])
+          query2 <- exprToQuery(expr.getArgs()(1).asInstanceOf[BoolExpr])
+          remainingQueries = (2 until expr.getNumArgs).map(n => exprToQuery(expr.getArgs()(n).asInstanceOf[BoolExpr]))
+          remaining <- remainingQueries.foldLeft[Try[Seq[Query]]](Success(Seq.empty)) {
+            case (result @ Failure(_), _) =>
+              result
 
-          And(query1, query2, remaining: _*)
-        }
+            case (_, Failure(exn)) =>
+              Failure(exn)
+
+            case (Success(data), Success(result)) =>
+              Success(data :+ result)
+          }
+        } yield And(query1, query2, remaining: _*)
       }
     } else if (expr.isOr) {
       if (expr.getNumArgs < 2) {
-        Future.failed(new RuntimeException(s"Or expression does not have enough arguments: $expr"))
+        Failure(new RuntimeException(s"Or expression does not have enough arguments: $expr"))
       } else {
-        async {
-          val query1 = await(exprToQuery(expr.getArgs()(0).asInstanceOf[BoolExpr]))
-          val query2 = await(exprToQuery(expr.getArgs()(1).asInstanceOf[BoolExpr]))
-          val remaining = await(Future.sequence((2 until expr.getNumArgs).map(n => exprToQuery(expr.getArgs()(n).asInstanceOf[BoolExpr])))).toSeq
+        for {
+          query1 <- exprToQuery(expr.getArgs()(0).asInstanceOf[BoolExpr])
+          query2 <- exprToQuery(expr.getArgs()(1).asInstanceOf[BoolExpr])
+          remainingQueries = (2 until expr.getNumArgs).map(n => exprToQuery(expr.getArgs()(n).asInstanceOf[BoolExpr]))
+          remaining <- remainingQueries.foldLeft[Try[Seq[Query]]](Success(Seq.empty)) {
+            case (result @ Failure(_), _) =>
+              result
 
-          Or(query1, query2, remaining: _*)
-        }
+            case (_, Failure(exn)) =>
+              Failure(exn)
+
+            case (Success(data), Success(result)) =>
+              Success(data :+ result)
+          }
+        } yield Or(query1, query2, remaining: _*)
       }
     } else {
-      Future.failed(new RuntimeException(s"Unrecognised expression kind: $expr"))
+      Failure(new RuntimeException(s"Unrecognised expression kind: $expr"))
     }
   }
 
-  def simplify(query: Query)(implicit ec: ExecutionContext): Future[Query] = {
+  def simplify(query: Query): Try[Query] = {
     exprToQuery(queryToExpr(query).simplify().asInstanceOf[BoolExpr])
   }
 
-  def satisfiable(query: Query)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def satisfiable(query: Query): Try[Boolean] = {
     solver.add(queryToExpr(query))
 
     solver.check() match {
       case Status.SATISFIABLE =>
-        Future.successful(true)
+        Success(true)
 
       case Status.UNSATISFIABLE =>
-        Future.successful(false)
+        Success(false)
 
       case Status.UNKNOWN =>
-        Future.failed(new RuntimeException(s"Failed to determine if $query was satisfiable or not - reason: ${solver.getReasonUnknown}"))
+        Failure(new RuntimeException(s"Failed to determine if $query was satisfiable or not - reason: ${solver.getReasonUnknown}"))
     }
   }
 
-  def valid(query: Query)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def valid(query: Query): Try[Boolean] = {
     solver.add(ctx.mkNot(queryToExpr(query)))
 
     solver.check() match {
       case Status.SATISFIABLE =>
-        Future.successful(false)
+        Success(false)
 
       case Status.UNSATISFIABLE =>
-        Future.successful(true)
+        Success(true)
 
       case Status.UNKNOWN =>
-        Future.failed(new RuntimeException(s"Failed to determine if $query was valid or not - reason: ${solver.getReasonUnknown}"))
+        Failure(new RuntimeException(s"Failed to determine if $query was valid or not - reason: ${solver.getReasonUnknown}"))
     }
   }
 
