@@ -33,7 +33,7 @@ class RuntimeMonitor(system: ExtendedActorSystem) extends Extension {
     def checker(sessionType: String): Try[ActorRef] = {
       QueryParser.query(sessionType) match {
         case Success(query: Query) =>
-          Success(system.actorOf(Checker.props(query)))
+          Success(system.actorOf(Model.props(query)))
 
         case Failure(exn) =>
           Failure(exn)

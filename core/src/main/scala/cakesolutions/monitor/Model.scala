@@ -12,10 +12,10 @@ import scala.util.{Success, Try}
 /**
  * Internal API
  */
-object Checker {
+object Model {
 
   private[monitor] def props(query: Query) =
-    Props(new Checker(query)).withDispatcher("checker-dispatcher")
+    Props(new Model(query)).withDispatcher("checker-dispatcher")
 
 }
 
@@ -24,7 +24,7 @@ object Checker {
  *
  * @param query query that we are to monitor for
  */
-class Checker(query: Query) extends Actor with ActorLogging with StandardEvaluation {
+class Model(query: Query) extends Actor with ActorLogging with StandardEvaluation {
 
   private[this] val config = context.system.settings.config
   private[this] val prover = config.getString("prover.default") match {
