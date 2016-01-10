@@ -14,7 +14,7 @@ import scala.util.{Success, Try}
  */
 object Model {
 
-  private[monitor] def props(query: Query) =
+  private[monitor] def props(query: RuntimeMonitor.Query) =
     Props(new Model(query)).withDispatcher("checker-dispatcher")
 
 }
@@ -24,7 +24,7 @@ object Model {
  *
  * @param query query that we are to monitor for
  */
-class Model(query: Query) extends Actor with ActorLogging with StandardEvaluation {
+class Model(query: RuntimeMonitor.Query) extends Actor with ActorLogging with StandardEvaluation {
 
   private[this] val config = context.system.settings.config
   private[this] val prover = config.getString("prover.default") match {
@@ -83,6 +83,6 @@ class Model(query: Query) extends Actor with ActorLogging with StandardEvaluatio
       sender() ! processEvent(event, query).get
   }
 
-  def receive = prove(query)
+  def receive = prove(query.toQuery)
 
 }

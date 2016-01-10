@@ -14,7 +14,7 @@ object Probe {
 
   case class InvalidMessageType(reason: String) extends Exception
 
-  private[monitor] def props[T : ClassTag](props: Props, monitor: ActorRef, sessionType: String) =
+  private[monitor] def props[T : ClassTag](props: Props, monitor: ActorRef, sessionType: RuntimeMonitor.Query) =
     Props(new Probe[T](props, monitor, sessionType))
 
 }
@@ -23,7 +23,7 @@ object Probe {
  * TODO: document!
  */
 // TODO: setup Probe actor as being persistent!
-class Probe[T : ClassTag](props: Props, monitor: ActorRef, sessionType: String) extends Actor with ActorLogging {
+class Probe[T : ClassTag](props: Props, monitor: ActorRef, sessionType: RuntimeMonitor.Query) extends Actor with ActorLogging {
 
   import Probe._
 
