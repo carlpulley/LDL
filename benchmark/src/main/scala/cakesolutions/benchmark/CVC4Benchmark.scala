@@ -23,7 +23,7 @@ class CVC4Benchmark extends ModelGenerators {
 
   @Setup(Level.Trial)
   def setup(): Unit = {
-    cvc4 = Some(new CVC4(ConfigFactory.load("prover.conf")))
+    cvc4 = Some(new CVC4(ConfigFactory.load("reference.conf")))
   }
 
   @TearDown(Level.Trial)

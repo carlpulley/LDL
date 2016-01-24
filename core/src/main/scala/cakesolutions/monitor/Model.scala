@@ -15,7 +15,7 @@ import scala.util.{Success, Try}
 object Model {
 
   private[monitor] def props(query: RuntimeMonitor.Query) =
-    Props(new Model(query)).withDispatcher("checker-dispatcher")
+    Props(new Model(query)).withDispatcher("prover.dispatcher")
 
 }
 

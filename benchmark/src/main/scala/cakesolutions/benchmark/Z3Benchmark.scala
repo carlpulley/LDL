@@ -23,7 +23,7 @@ class Z3Benchmark extends ModelGenerators {
 
   @Setup(Level.Trial)
   def setup(): Unit = {
-    z3 = Some(new Z3(ConfigFactory.load("prover.conf")))
+    z3 = Some(new Z3(ConfigFactory.load("reference.conf")))
   }
 
   @TearDown(Level.Trial)
