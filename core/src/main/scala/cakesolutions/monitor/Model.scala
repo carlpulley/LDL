@@ -1,18 +1,19 @@
 package cakesolutions.monitor
 
+import scala.util.{Success, Try}
+
 import akka.actor._
 import akka.event.LoggingReceive
+
 import cakesolutions.model.QueryModel._
 import cakesolutions.model.StandardEvaluation
 import cakesolutions.model.provers.{CVC4, Z3}
 import cakesolutions.syntax.QueryLanguage.Query
 
-import scala.util.{Success, Try}
-
 /**
  * Internal API
  */
-object Model {
+private[monitor] object Model {
 
   private[monitor] def props(query: RuntimeMonitor.Query) =
     Props(new Model(query)).withDispatcher("prover.dispatcher")
@@ -24,7 +25,8 @@ object Model {
  *
  * @param query query that we are to monitor for
  */
-class Model(query: RuntimeMonitor.Query) extends Actor with ActorLogging with StandardEvaluation {
+// TODO: setup Model actor as being persistent!
+private[monitor] class Model(query: Query) extends Actor with ActorLogging with StandardEvaluation {
 
   private[this] val config = context.system.settings.config
   private[this] val prover = config.getString("prover.default") match {
@@ -83,6 +85,6 @@ class Model(query: RuntimeMonitor.Query) extends Actor with ActorLogging with St
       sender() ! processEvent(event, query).get
   }
 
-  def receive = prove(query.toQuery)
+  def receive = prove(query)
 
 }

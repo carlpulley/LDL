@@ -4,6 +4,8 @@ ProjectBuild.Settings.project
 
 name := "linear-dynamic-logic-core"
 
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+
 antlr4Settings
 
 antlr4PackageName in Antlr4 := Some("cakesolutions.antlr4")
@@ -17,6 +19,7 @@ libraryDependencies ++= Seq(
   scalaz.core,
   akka.slf4j,
   logback,
+  reflection,
   slf4j.simple,
   // Testing
   akka.testkit,

@@ -1,6 +1,7 @@
 package cakesolutions.model
 
 import akka.actor.ActorLogging
+
 import cakesolutions.syntax.QueryLanguage
 
 trait StandardEvaluation {

@@ -1,8 +1,8 @@
 package cakesolutions.model.provers
 
-import cakesolutions.syntax.QueryLanguage
-
 import scala.util.Try
+
+import cakesolutions.syntax.QueryLanguage
 
 trait Interface {
 
