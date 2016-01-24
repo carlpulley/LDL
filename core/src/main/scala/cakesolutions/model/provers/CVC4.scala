@@ -1,12 +1,13 @@
 package cakesolutions.model.provers
 
-import cakesolutions.syntax.QueryLanguage
-import com.typesafe.config.Config
-import edu.nyu.acsys.CVC4._
-
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
+
+import com.typesafe.config.Config
+import edu.nyu.acsys.CVC4._
+
+import cakesolutions.syntax.QueryLanguage
 
 /**
  * CVC4 Install Instructions (for OS X with brew 'support'):

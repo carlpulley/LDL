@@ -2,12 +2,13 @@ package cakesolutions.benchmark
 
 import java.util.concurrent.{Executors, TimeUnit}
 
-import cakesolutions.model.ModelGenerators
-import cakesolutions.model.provers.Z3
-import cakesolutions.syntax.QueryLanguage.Query
 import com.typesafe.config.ConfigFactory
 import org.openjdk.jmh.annotations._
 import org.openjdk.jmh.infra.Blackhole
+
+import cakesolutions.model.ModelGenerators
+import cakesolutions.model.provers.Z3
+import cakesolutions.syntax.QueryLanguage.Query
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Array(Mode.All))

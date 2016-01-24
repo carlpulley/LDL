@@ -1,11 +1,12 @@
 package cakesolutions.model.provers
 
-import cakesolutions.syntax.QueryLanguage
+import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
+
 import com.microsoft.z3._
 import com.typesafe.config.Config
 
-import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
+import cakesolutions.syntax.QueryLanguage
 
 class Z3(config: Config) extends Interface {
 

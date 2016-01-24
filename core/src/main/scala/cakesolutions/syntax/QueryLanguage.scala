@@ -24,7 +24,7 @@ object QueryLanguage {
    * Ground facts logically model named ground predicates.
    */
   case class GroundFact(name: String) extends Fact {
-    require(name.matches("^[_a-zA-Z][_a-zA-Z0-9]*$"))
+    require(name.matches("^[_a-zA-Z$][_a-zA-Z0-9$]*$") || List("..", "*").contains(name))
     require(!keywords.contains(name))
 
     override def toString = name
@@ -208,41 +208,5 @@ object QueryLanguage {
     case All(path, query1) =>
       Exists(path, not(query1))
   }
-
-  /**
-   * Indicates that the exercise session has completed (remaining trace is empty)
-   */
-  val End: Query = All(Test(Formula(True)), FF)
-
-  /**
-   * Denotes the last step of the exercise session
-   */
-  val Last: Query = All(AssertFact(True), End)
-
-  /**
-   * Following definitions allow linear-time logic to be encoded within the current logic. Translation here is linear in
-   * the size of the formula.
-   */
-
-  /**
-   * At the next point of the exercise session, the query will hold
-   */
-  def Next(query: Query): Query = Exists(AssertFact(True), query)
-
-  /**
-   * At some point in the exercise session, the query will hold
-   */
-  def Diamond(query: Query): Query = Exists(Repeat(AssertFact(True)), query)
-
-  /**
-   * For all points in the exercise session, the query holds
-   */
-  def Box(query: Query): Query = All(Repeat(AssertFact(True)), query)
-
-  /**
-   * Until query2 holds, query1 will hold in the exercise session. Query2 will hold at some point during the exercise
-   * session.
-   */
-  def Until(query1: Query, query2: Query): Query = Exists(Repeat(Sequence(Test(query1), AssertFact(True))), query2)
 
 }
