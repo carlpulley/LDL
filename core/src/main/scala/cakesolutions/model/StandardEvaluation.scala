@@ -12,7 +12,7 @@ trait StandardEvaluation {
 
   // TODO: introduce memoisation into `evaluate` functions?
 
-  def evaluateAtState(path: Proposition, state: Set[GroundFact]): Boolean = path match {
+  def evaluateAtState(path: Proposition, state: Set[Fact]): Boolean = path match {
     case True =>
       true
 
@@ -26,12 +26,10 @@ trait StandardEvaluation {
       state.contains(fact)
 
     case Conjunction(fact1, fact2, remaining @ _*) =>
-      val results = (fact1 +: fact2 +: remaining).map(p => evaluateAtState(p, state))
-      results.forall(_ == true)
+      (fact1 +: fact2 +: remaining).foldRight(true) { (prop, result) => result && evaluateAtState(prop, state) }
 
     case Disjunction(fact1, fact2, remaining @ _*) =>
-      val results = (fact1 +: fact2 +: remaining).map(p => evaluateAtState(p, state))
-      results.contains(true)
+      (fact1 +: fact2 +: remaining).foldRight(false) { (prop, result) => result || evaluateAtState(prop, state) }
   }
 
   def evaluateQuery(query: Query)(event: ObservableEvent): Notification = {
@@ -54,13 +52,11 @@ trait StandardEvaluation {
 
       case And(query1, query2, remaining @ _*) =>
         log.debug(s"st = $state\n  st |== $query${(query1 +: query2 +: remaining).map(q => s"\n  ~~> && st |== $q").mkString("")}")
-        val results = (query1 +: query2 +: remaining).map(q => evaluateQuery(q)(event))
-        results.foldRight[Notification](StableValue(result = true)) { case (p, q) => meet(p, q) }
+        (query1 +: query2 +: remaining).foldRight[Notification](StableValue(result = true)) { case (prop, q) => meet(q, evaluateQuery(prop)(event)) }
 
       case Or(query1, query2, remaining @ _*) =>
         log.debug(s"st = $state\n  st |== $query${(query1 +: query2 +: remaining).map(q => s"\n  ~~> || st |== $q").mkString("")}")
-        val results = (query1 +: query2 +: remaining).map(q => evaluateQuery(q)(event))
-        results.foldRight[Notification](StableValue(result = false)) { case (p, q) => join(p, q) }
+        (query1 +: query2 +: remaining).foldRight[Notification](StableValue(result = false)) { case (prop, q) => join(q, evaluateQuery(prop)(event)) }
 
       case Exists(AssertFact(fact), query1) if !lastState && evaluateAtState(fact, state) =>
         // for some `AssertFact(fact)` step (whilst not in last trace step)
@@ -72,7 +68,7 @@ trait StandardEvaluation {
         log.debug(s"st = $state\n  st |== $query\n  ~~> ## FALSE ##")
         StableValue(result = false)
 
-      case Exists(Test(query1), query2) =>
+      case Exists(Assume(query1), query2) =>
         log.debug(s"st = $state\n  st |== $query\n  ~~> && st |== $query1\n  ~~> && st |== $query2")
         meet(evaluateQuery(query1)(event), evaluateQuery(query2)(event))
 
@@ -105,7 +101,7 @@ trait StandardEvaluation {
         log.debug(s"st = $state\n  st |== $query\n  ~~> ## TRUE ##")
         StableValue(result = true)
 
-      case All(Test(query1), query2) =>
+      case All(Assume(query1), query2) =>
         log.debug(s"st = $state\n  st |== $query\n  ~~> || st |== ~ $query1\n  ~~> || st |== $query2")
         join(evaluateQuery(QueryLanguage.not(query1))(event), evaluateQuery(query2)(event))
 

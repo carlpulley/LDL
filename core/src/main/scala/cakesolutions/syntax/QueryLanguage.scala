@@ -7,27 +7,34 @@ object QueryLanguage {
   /**
    * Observations record the state of, for example, sensor outputs.
    */
-  type Observation = Set[GroundFact]
+  type Observation = Set[Fact]
 
   val keywords = Seq("true", "false", "TT", "FF")
+
+  /**
+   * Namespaces.
+   */
+  val nameType = Some("name")
+  val messageType = Some("message")
+  val roleType = Some("role")
 
   /**
    * Facts that may hold of sensor data.
    */
   sealed trait Fact
 
-  case class Neg(fact: GroundFact) extends Fact {
+  final case class Neg(fact: GroundFact) extends Fact {
     override def toString = s"(!$fact)"
   }
 
   /**
    * Ground facts logically model named ground predicates.
    */
-  case class GroundFact(name: String) extends Fact {
-    require(name.matches("^[_a-zA-Z$][_a-zA-Z0-9$]*$") || List("..", "*").contains(name))
-    require(!keywords.contains(name))
+  final case class GroundFact(name: String, namespace: Option[String] = None) extends Fact {
+    require(!keywords.contains(name), s"$name is a reserved keyword")
+    require(namespace.forall(_.matches("^[_a-zA-Z0-9]+$")), s"$namespace does not match '^[_a-zA-Z0-9]+$$'")
 
-    override def toString = name
+    override def toString = name //s"${namespace.getOrElse("")}::$name"
   }
 
   /**
@@ -55,18 +62,36 @@ object QueryLanguage {
     override def toString = "false"
   }
 
-  case class Assert(fact: Fact) extends Proposition {
+  final case class Assert(fact: Fact) extends Proposition {
     override def toString = fact.toString
   }
 
   @varargs
-  case class Conjunction(fact1: Proposition, fact2: Proposition, remainingFacts: Proposition*) extends Proposition {
-    override def toString = (fact1 +: fact2 +: remainingFacts).mkString("(", " && ", ")")
+  final case class Conjunction(fact1: Proposition, fact2: Proposition, remainingFacts: Proposition*) extends Proposition {
+    override def toString = (fact1, fact2) match {
+      case (Assert(GroundFact(msg, `messageType`)), Assert(GroundFact(ref, `nameType`))) if remainingFacts.isEmpty =>
+        s"($ref ! $msg)"
+
+      case (Assert(Neg(GroundFact(msg, `messageType`))), Assert(Neg(GroundFact(ref, `nameType`)))) if remainingFacts.isEmpty =>
+        s"($ref ? $msg)"
+
+      case _ =>
+        (fact1 +: fact2 +: remainingFacts).mkString("(", " && ", ")")
+    }
   }
 
   @varargs
-  case class Disjunction(fact1: Proposition, fact2: Proposition, remainingFacts: Proposition*) extends Proposition {
-    override def toString = (fact1 +: fact2 +: remainingFacts).mkString("(", " || ", ")")
+  final case class Disjunction(fact1: Proposition, fact2: Proposition, remainingFacts: Proposition*) extends Proposition {
+    override def toString = (fact1, fact2) match {
+      case (Assert(GroundFact(msg, `messageType`)), Assert(GroundFact(ref, `nameType`))) if remainingFacts.isEmpty =>
+        s"($ref ! $msg)"
+
+      case (Assert(Neg(GroundFact(msg, `messageType`))), Assert(Neg(GroundFact(ref, `nameType`)))) if remainingFacts.isEmpty =>
+        s"($ref ? $msg)"
+
+      case _ =>
+        (fact1 +: fact2 +: remainingFacts).mkString("(", " || ", ")")
+    }
   }
 
   def not(fact: Proposition): Proposition = fact match {
@@ -94,25 +119,25 @@ object QueryLanguage {
    */
   sealed trait Path
 
-  case class AssertFact(fact: Proposition) extends Path {
+  final case class AssertFact(fact: Proposition) extends Path {
     override def toString = fact.toString
   }
 
-  case class Test(query: Query) extends Path {
-    override def toString = s"($query ?)"
+  final case class Assume(query: Query) extends Path {
+    override def toString = s"if($query)"
   }
 
   @varargs
-  case class Choice(path1: Path, path2: Path, remaining: Path*) extends Path {
+  final case class Choice(path1: Path, path2: Path, remaining: Path*) extends Path {
     override def toString = (path1 +: path2 +: remaining).mkString("(", " + ", ")")
   }
 
   @varargs
-  case class Sequence(path1: Path, path2: Path, remaining: Path*) extends Path {
+  final case class Sequence(path1: Path, path2: Path, remaining: Path*) extends Path {
     override def toString = (path1 +: path2 +: remaining).mkString("(", "; ", ")")
   }
 
-  case class Repeat(path: Path) extends Path {
+  final case class Repeat(path: Path) extends Path {
     override def toString = s"($path *)"
   }
 
@@ -126,7 +151,7 @@ object QueryLanguage {
     case AssertFact(_) =>
       false
 
-    case Test(_) =>
+    case Assume(_) =>
       true
 
     case Choice(path1, path2, remainingPaths @ _*) =>
@@ -144,7 +169,7 @@ object QueryLanguage {
    */
   sealed trait Query
 
-  case class Formula(fact: Proposition) extends Query {
+  final case class Formula(fact: Proposition) extends Query {
     override def toString = fact.toString
   }
 
@@ -157,12 +182,12 @@ object QueryLanguage {
   }
 
   @varargs
-  case class And(query1: Query, query2: Query, remainingQueries: Query*) extends Query {
+  final case class And(query1: Query, query2: Query, remainingQueries: Query*) extends Query {
     override def toString = (query1 +: query2 +: remainingQueries).mkString("(", " && ", ")")
   }
 
   @varargs
-  case class Or(query1: Query, query2: Query, remainingQueries: Query*) extends Query {
+  final case class Or(query1: Query, query2: Query, remainingQueries: Query*) extends Query {
     override def toString = (query1 +: query2 +: remainingQueries).mkString("(", " || ", ")")
   }
 
@@ -174,11 +199,11 @@ object QueryLanguage {
    * @param path  path prefix at end of which query should hold
    * @param query query that is to hold at end of a path prefix
    */
-  case class Exists(path: Path, query: Query) extends Query {
+  final case class Exists(path: Path, query: Query) extends Query {
     override def toString = s"(<$path> $query)"
   }
 
-  case class All(path: Path, query: Query) extends Query {
+  final case class All(path: Path, query: Query) extends Query {
     override def toString = s"([$path] $query)"
   }
 

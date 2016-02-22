@@ -16,6 +16,7 @@ antlr4GenVisitor in Antlr4 := true
 libraryDependencies ++= Seq(
   async,
   akka.actor,
+  akka.contrib,
   scalaz.core,
   akka.slf4j,
   logback,

@@ -1,26 +1,34 @@
 package cakesolutions.monitor.annotation
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorSystem, Props, Terminated}
+import akka.event.LoggingReceive
 import akka.testkit.TestProbe
+import cakesolutions.monitor._
 import org.scalatest.FreeSpec
+
+import scala.concurrent.duration._
 
 class BehaviourTest extends FreeSpec {
 
   implicit val system = ActorSystem("TestActorSystem")
 
+  //@Behaviour("[ expectZero; (_?Int ; _!String)+ ] seenZero")
   @Behaviour("expectZero && [ (_?Int ; _!String)+ ] seenZero")
   class Int2StringActor(probe: TestProbe) extends Actor {
-    // @Role
-    val seenZero: Receive = {
+
+    role("expectZero")
+
+    val seenZero: Receive = LoggingReceive {
       case msg: Int =>
-        probe.ref ! msg.toString // @Event
+        probe.ref !+ s"reply-$msg"
+        role("seenZero")
     }
 
-    // @Role
-    val expectZero: Receive = {
+    val expectZero: Receive = LoggingReceive {
       case 0 =>
-        probe.ref ! "0" // @Event
+        probe.ref !+ "reply-0"
         context.become(seenZero)
+        role("seenZero")
     }
 
     def receive = expectZero
@@ -30,47 +38,65 @@ class BehaviourTest extends FreeSpec {
 
     "Monitored actors permit allowable messages" in {
       val probe = TestProbe()
-      val ref = system.actorOf(Props(new Int2StringActor(probe)))
-
-      ref ! 0
-      probe.expectMsg("0")
-    }
-
-    "Monitored actors permit multiple allowable messages" in {
-      val probe = TestProbe()
-      val ref = system.actorOf(Props(new Int2StringActor(probe)))
-
-      for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
-        ref ! n
-        probe.expectMsg(n.toString)
-      }
-    }
-
-    "Monitored actors stop with invalid states" in {
-      val probe = TestProbe()
+      val sender = TestProbe()
       val supervisor = TestProbe()
       val ref = system.actorOf(Props(new Int2StringActor(probe)))
 
       supervisor.watch(ref)
 
-      ref ! 42
+      ref.tell(0, sender.ref)
+      probe.expectMsg("reply-0")
+      supervisor.expectMsgPF(2.seconds) {
+        case Terminated(actorRef) => false
+        case _ => true
+      }
+    }
+
+    "Monitored actors permit multiple allowable messages" in {
+      val probe = TestProbe()
+      val sender = TestProbe()
+      val supervisor = TestProbe()
+      val ref = system.actorOf(Props(new Int2StringActor(probe)))
+
+      supervisor.watch(ref)
+
+      for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
+        ref.tell(n, sender.ref)
+        probe.expectMsg(s"reply-$n")
+      }
+      supervisor.expectMsgPF(2.seconds) {
+        case Terminated(actorRef) => false
+        case _ => true
+      }
+    }
+
+    "Monitored actors stop with invalid states" in {
+      val probe = TestProbe()
+      val sender = TestProbe()
+      val supervisor = TestProbe()
+      val ref = system.actorOf(Props(new Int2StringActor(probe)))
+
+      supervisor.watch(ref)
+
+      ref.tell(42, sender.ref)
       probe.expectNoMsg()
       supervisor.expectTerminated(ref)
     }
 
     "Monitored actors stop with invalid messages" in {
       val probe = TestProbe()
+      val sender = TestProbe()
       val supervisor = TestProbe()
       val ref = system.actorOf(Props(new Int2StringActor(probe)))
 
       supervisor.watch(ref)
 
       for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
-        ref ! n
-        probe.expectMsg(n.toString)
+        ref.tell(n, sender.ref)
+        probe.expectMsg(s"reply-$n")
       }
 
-      ref ! 4.2
+      ref.tell(4.2, sender.ref)
       probe.expectNoMsg()
       supervisor.expectTerminated(ref)
     }

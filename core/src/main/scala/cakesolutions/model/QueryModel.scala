@@ -15,9 +15,8 @@ object QueryModel {
   sealed trait ObservableEvent extends Event {
     def observation: Observation
   }
-  case class Next(observation: Observation) extends ObservableEvent
-  case class Completed(observation: Observation) extends ObservableEvent
-  case object Cancel extends Event
+  final case class Next(observation: Observation) extends ObservableEvent
+  final case class Completed(observation: Observation) extends ObservableEvent
 
   /**
    * Values representing the current evaluation state of a given query:
@@ -29,11 +28,11 @@ object QueryModel {
   /**
    * @param result validity of linear dynamic logic statement at this and future points in time
    */
-  case class StableValue(result: Boolean) extends Notification
+  final case class StableValue(result: Boolean) extends Notification
   /**
    * @param state  positive propositional description of the next states for an alternating automaton over words
    */
-  case class UnstableValue(state: Query) extends Notification
+  final case class UnstableValue(state: Query) extends Notification
 
   /**
    * Auxillary functions that support QueryValue lattice structure

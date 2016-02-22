@@ -1,7 +1,7 @@
 package cakesolutions.model
 
 import org.scalacheck.Arbitrary._
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Gen._
 
 import cakesolutions.model.QueryModel._
@@ -12,11 +12,11 @@ trait ModelGenerators {
 
   val defaultWidth = 15
 
-  def GroundFactGen(prefix: String = ""): Gen[GroundFact] = for {
+  def GroundFactGen(prefix: Option[String] = None): Gen[GroundFact] = for {
     name <- Gen.identifier if !QueryLanguage.keywords.contains(name)
-  } yield new GroundFact(s"$prefix$$$name")
+  } yield new GroundFact(name, prefix)
 
-  def FactGen(prefix: String = ""): Gen[Fact] = frequency(
+  def FactGen(prefix: Option[String] = None): Gen[Fact] = frequency(
     1 -> (for { fact <- GroundFactGen(prefix) } yield fact),
     0 -> (for { fact <- GroundFactGen(prefix) } yield Neg(fact))
   )
@@ -28,16 +28,16 @@ trait ModelGenerators {
 
   // TODO: flesh this out!
   def LocationGen(width: Int = defaultWidth): Gen[Proposition] = frequency(
-    1 -> GroundFactGen("name").map(Assert)
+    1 -> GroundFactGen(Some("name")).map(Assert)
   )
 
   def MessageGen(width: Int = defaultWidth): Gen[Proposition] = frequency(
-    1 -> GroundFactGen("message").map(Assert)
+    1 -> GroundFactGen(Some("message")).map(Assert)
   )
 
   def RoleGen(width: Int = defaultWidth): Gen[Proposition] = frequency(
     1 -> Gen.oneOf(True, False),
-    5 -> (for { fact <- Gen.lzy(FactGen("role")) } yield Assert(fact)),
+    5 -> (for { fact <- Gen.lzy(FactGen(Some("role"))) } yield Assert(fact)),
     1 -> (for {
       fact1 <- Gen.lzy(RoleGen(width-1))
       fact2 <- Gen.lzy(RoleGen(width-1))
@@ -53,8 +53,17 @@ trait ModelGenerators {
   )
 
   def PathGen(width: Int = defaultWidth): Gen[Path] = frequency(
-    5 -> Gen.lzy(LocationGen(width-1)).map(AssertFact),
-    5 -> Gen.lzy(BehaviourGen(width-1)).map(Test),
+    5 -> (for {
+      ref <- Gen.lzy(LocationGen(width-1))
+      msg <- Gen.lzy(MessageGen(width-1))
+      tellOrReceive <- Gen.lzy(Arbitrary.arbitrary[Boolean])
+      result = if (tellOrReceive) {
+        AssertFact(Conjunction(msg, ref))
+      } else {
+        AssertFact(not(Conjunction(msg, ref)))
+      }
+    } yield result),
+    5 -> Gen.lzy(BehaviourGen(width-1)).map(Assume),
     1 -> (for {
       path1 <- Gen.lzy(PathGen(width-1))
       path2 <- Gen.lzy(PathGen(width-1))

@@ -33,7 +33,7 @@ object BehaviourParser {
   private class BehaviourParserImpl extends antlr4.BehaviourBaseVisitor[Any] {
 
     override def visitIDName(ctx: antlr4.BehaviourParser.IDNameContext) = {
-      s"name$$${ctx.ID.getText}"
+      ctx.ID.getText
     }
 
     override def visitParentName(ctx: antlr4.BehaviourParser.ParentNameContext) = {
@@ -49,7 +49,7 @@ object BehaviourParser {
     }
 
     override def visitFixedLocation(ctx: antlr4.BehaviourParser.FixedLocationContext) = {
-      Assert(GroundFact(s"name$$${ctx.ID.getText}"))
+      Assert(GroundFact(ctx.ID.getText, nameType)) // FIXME:
     }
 
 // TODO:
@@ -66,7 +66,7 @@ object BehaviourParser {
     }
 
     override def visitIDMessage(ctx: antlr4.BehaviourParser.IDMessageContext) = {
-      Assert(GroundFact(s"message$$${ctx.ID.getText}"))
+      Assert(GroundFact(ctx.ID.getText, messageType))
     }
 
     override def visitRoleUnit(ctx: antlr4.BehaviourParser.RoleUnitContext) = {
@@ -82,7 +82,7 @@ object BehaviourParser {
     }
 
     override def visitNotIDRole(ctx: antlr4.BehaviourParser.NotIDRoleContext) = {
-      Assert(Neg(GroundFact(s"role$$${ctx.ID.getText}")))
+      Assert(Neg(GroundFact(ctx.ID.getText, roleType)))
     }
 
     override def visitDisjunctionRole(ctx: antlr4.BehaviourParser.DisjunctionRoleContext) = {
@@ -97,7 +97,7 @@ object BehaviourParser {
     }
 
     override def visitIDRole(ctx: antlr4.BehaviourParser.IDRoleContext) = {
-      Assert(GroundFact(s"role$$${ctx.ID.getText}"))
+      Assert(GroundFact(ctx.ID.getText, roleType))
     }
 
     override def visitDefnNotRole(ctx: antlr4.BehaviourParser.DefnNotRoleContext) = {
@@ -120,14 +120,22 @@ object BehaviourParser {
     }
 
     override def visitBehaviourPath(ctx: antlr4.BehaviourParser.BehaviourPathContext) = {
-      Test(visit(ctx.behaviour).asInstanceOf[Query])
+      Assume(visit(ctx.behaviour).asInstanceOf[Query])
+    }
+
+    override def visitTrueEvent(ctx: antlr4.BehaviourParser.TrueEventContext) = {
+      AssertFact(True)
+    }
+
+    override def visitFalseEvent(ctx: antlr4.BehaviourParser.FalseEventContext) = {
+      AssertFact(False)
     }
 
     override def visitReceiveEvent(ctx: antlr4.BehaviourParser.ReceiveEventContext) = {
       val msg = visit(ctx.message).asInstanceOf[Proposition]
       val ref = visit(ctx.location).asInstanceOf[Proposition]
 
-      not(Conjunction(msg, ref))
+      AssertFact(not(Conjunction(msg, ref)))
     }
 
     override def visitZeroOrMorePath(ctx: antlr4.BehaviourParser.ZeroOrMorePathContext) = {
@@ -152,7 +160,7 @@ object BehaviourParser {
       val msg = visit(ctx.message).asInstanceOf[Proposition]
       val ref = visit(ctx.location).asInstanceOf[Proposition]
 
-      Conjunction(msg, ref)
+      AssertFact(Conjunction(msg, ref))
     }
 
     override def visitOneOrMorePath(ctx: antlr4.BehaviourParser.OneOrMorePathContext) = {

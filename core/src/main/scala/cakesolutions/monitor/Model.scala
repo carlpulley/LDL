@@ -1,90 +1,65 @@
 package cakesolutions.monitor
 
-import scala.util.{Success, Try}
-
 import akka.actor._
-import akka.event.LoggingReceive
+import cakesolutions.monitor.model.{EventExtractor, Prover, WatchSubject}
+import cakesolutions.syntax.QueryLanguage.{Fact, Query}
 
-import cakesolutions.model.QueryModel._
-import cakesolutions.model.StandardEvaluation
-import cakesolutions.model.provers.{CVC4, Z3}
-import cakesolutions.syntax.QueryLanguage.Query
+object Model {
 
-/**
- * Internal API
- */
-private[monitor] object Model {
+  /**
+   * Internal API
+   */
+  sealed trait Observation
 
-  private[monitor] def props(query: RuntimeMonitor.Query) =
-    Props(new Model(query)).withDispatcher("prover.dispatcher")
-
-}
-
-/**
- * TODO: document!
- *
- * @param query query that we are to monitor for
- */
-// TODO: setup Model actor as being persistent!
-private[monitor] class Model(query: Query) extends Actor with ActorLogging with StandardEvaluation {
-
-  private[this] val config = context.system.settings.config
-  private[this] val prover = config.getString("prover.default") match {
-    case "cvc4" | "CVC4" =>
-      new CVC4(config)
-
-    case "z3" | "Z3" =>
-      new Z3(config)
-  }
-
-  private def processEvent(event: ObservableEvent, query: Query): Try[Notification] =
-    evaluateQuery(query)(event) match {
-      case UnstableValue(nextQuery) =>
-          // We interact with the prover concurrently to determine validity of, satisfiability of and simplify `nextQuery`
-          prover.valid(nextQuery).flatMap { validQuery =>
-            if (validQuery) {
-              context.become(ignore)
-              // `nextQuery` is valid - so any LDL unwinding of this formula will allow it to become true
-              Success(StableValue(result = true))
-            } else {
-              prover.satisfiable(nextQuery).flatMap { satisfiableQuery =>
-                if (satisfiableQuery) {
-                  prover.simplify(nextQuery).map { simplifiedQuery =>
-                    // We need to unwind the LDL formula further in order to determine its validity
-                    context.become(prove(simplifiedQuery))
-                    // We pass on next query here to "facilitate" decision making on repeated query matching
-                    UnstableValue(nextQuery)
-                  }
-                } else {
-                  context.become(ignore)
-                  // `nextQuery` is unsatisfiable - so no LDL unwinding of this formula will allow it to become true
-                  Success(StableValue(result = false))
-                }
-              }
-            }
-          }
-
-      case value: StableValue =>
-        context.become(ignore)
-        Success(value)
+  final case class Receive(msg: Any, sender: ActorPath) extends Observation {
+    def this(msg: Any, sender: ActorRef) = {
+      this(msg, sender.path)
     }
 
-  private def ignore: Receive = LoggingReceive {
-    case Cancel =>
-      context.stop(self)
+    def this(msg: Any, sender: ActorSelection) = {
+      this(msg, sender.anchorPath)
+    }
+  }
+  object Receive {
+    def apply(msg: Any, sender: ActorRef): Receive = {
+      apply(msg, sender.path)
+    }
 
-    case _: ObservableEvent =>
-      // Ignore all observable events
+    def apply(msg: Any, sender: ActorSelection): Receive = {
+      apply(msg, sender.anchorPath)
+    }
   }
 
-  private def prove(query: Query): Receive = LoggingReceive {
-    case Cancel =>
-      context.stop(self)
+  final case class Tell(msg: Any, recipient: ActorPath) extends Observation {
+    def this(msg: Any, recipient: ActorRef) = {
+      this(msg, recipient.path)
+    }
 
-    case event: ObservableEvent =>
-      sender() ! processEvent(event, query).get
+    def this(msg: Any, recipient: ActorSelection) = {
+      this(msg, recipient.anchorPath)
+    }
+  }
+  object Tell {
+    def apply(msg: Any, recipient: ActorRef): Tell = {
+      apply(msg, recipient.path)
+    }
+
+    def apply(msg: Any, recipient: ActorSelection): Tell = {
+      apply(msg, recipient.anchorPath)
+    }
   }
 
-  def receive = prove(query)
+  final case class State(observations: Set[Fact]) extends Observation
+
+  case object Completed extends Observation
+
+  /**
+   * Internal API
+   */
+  final case class Monitor(ref: ActorRef) extends AnyVal
+
+  def props(subject: ActorRef, query: Query) = Props(new Model(subject, query)).withDispatcher("prover.dispatcher")
 
 }
+
+final case class Model private (subject: ActorRef, query: Query) extends EventExtractor with WatchSubject with Prover with ActorLogging

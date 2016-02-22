@@ -1,6 +1,6 @@
 package cakesolutions.benchmark
 
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.TimeUnit
 
 import com.typesafe.config.ConfigFactory
 import org.openjdk.jmh.annotations._
@@ -20,7 +20,7 @@ class CVC4Benchmark extends ModelGenerators {
 
   var cvc4: Option[CVC4] = None
 
-  var query: Option[Query] = None
+  var behaviour: Option[Query] = None
 
   @Setup(Level.Trial)
   def setup(): Unit = {
@@ -35,30 +35,30 @@ class CVC4Benchmark extends ModelGenerators {
   @Setup(Level.Invocation)
   def before(): Unit = {
     // TODO: move to using a tabular generator - for repeatable/reliable benchmarking
-    query = QueryGen().sample
+    behaviour = BehaviourGen().sample
   }
 
   @TearDown(Level.Invocation)
   def after(): Unit = {
-    query = None
+    behaviour = None
   }
 
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testValidity(bh: Blackhole): Unit = {
-    bh.consume(cvc4.flatMap(p => query.map(p.valid)))
+    bh.consume(cvc4.flatMap(p => behaviour.map(p.valid)))
   }
 
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testSatisfiability(bh: Blackhole): Unit = {
-    bh.consume(cvc4.flatMap(p => query.map(p.satisfiable)))
+    bh.consume(cvc4.flatMap(p => behaviour.map(p.satisfiable)))
   }
 
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testSimplify(bh: Blackhole): Unit = {
-    bh.consume(cvc4.flatMap(p => query.map(p.simplify)))
+    bh.consume(cvc4.flatMap(p => behaviour.map(p.simplify)))
   }
 
 }

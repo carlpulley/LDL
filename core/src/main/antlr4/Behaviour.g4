@@ -44,6 +44,8 @@ pathUnit
 
 path
   : '(' path ')' # ParensPath
+  | 'true' # TrueEvent
+  | 'false' # FalseEvent
   | location '?' message # ReceiveEvent
   | location '!' message # SendEvent
   | 'if' behaviour # BehaviourPath
@@ -72,5 +74,5 @@ behaviour
 // LEXER
 
 // NOTE: the '_' ID generally has a special meaning
-ID     : ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'0'..'9'|'_')*;
+ID     : ('a'..'z'|'A'..'Z'|'_')('a'..'z'|'A'..'Z'|'0'..'9'|'_'|'$')*;
 WS     : [ \t\n\r]+ -> skip ;
