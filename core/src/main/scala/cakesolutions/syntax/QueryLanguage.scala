@@ -32,9 +32,9 @@ object QueryLanguage {
    */
   final case class GroundFact(name: String, namespace: Option[String] = None) extends Fact {
     require(!keywords.contains(name), s"$name is a reserved keyword")
-    require(namespace.forall(_.matches("^[_a-zA-Z0-9]+$")), s"$namespace does not match '^[_a-zA-Z0-9]+$$'")
+    require(namespace.forall(_.matches("^[_a-zA-Z0-9:-]+$")), s"$namespace does not match '^[_a-zA-Z0-9:-]+$$'")
 
-    override def toString = name //s"${namespace.getOrElse("")}::$name"
+    override def toString = s"${namespace.getOrElse("")}::$name" //name
   }
 
   /**

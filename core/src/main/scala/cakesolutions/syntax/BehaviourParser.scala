@@ -132,10 +132,10 @@ object BehaviourParser {
     }
 
     override def visitReceiveEvent(ctx: antlr4.BehaviourParser.ReceiveEventContext) = {
-      val msg = visit(ctx.message).asInstanceOf[Proposition]
-      val ref = visit(ctx.location).asInstanceOf[Proposition]
+      val msg = namespace("receive", visit(ctx.message).asInstanceOf[Proposition])
+      val ref = namespace("receive", visit(ctx.location).asInstanceOf[Proposition])
 
-      AssertFact(not(Conjunction(msg, ref)))
+      AssertFact(Conjunction(msg, ref))
     }
 
     override def visitZeroOrMorePath(ctx: antlr4.BehaviourParser.ZeroOrMorePathContext) = {
@@ -157,8 +157,8 @@ object BehaviourParser {
     }
 
     override def visitSendEvent(ctx: antlr4.BehaviourParser.SendEventContext) = {
-      val msg = visit(ctx.message).asInstanceOf[Proposition]
-      val ref = visit(ctx.location).asInstanceOf[Proposition]
+      val msg = namespace("tell", visit(ctx.message).asInstanceOf[Proposition])
+      val ref = namespace("tell", visit(ctx.location).asInstanceOf[Proposition])
 
       AssertFact(Conjunction(msg, ref))
     }
@@ -213,6 +213,34 @@ object BehaviourParser {
       assume(args.length >= 2)
 
       And(args.head, args(1), args.drop(2): _*)
+    }
+
+    private def namespace(context: String, prop: Proposition): Proposition = prop match {
+      case True =>
+        True
+
+      case False =>
+        False
+
+      case Assert(GroundFact(name, path)) =>
+        if (path.isEmpty) {
+          Assert(GroundFact(name, Some(context)))
+        } else {
+          Assert(GroundFact(name, Some(s"$context::${path.get}")))
+        }
+
+      case Assert(Neg(GroundFact(name, path))) =>
+        if (path.isEmpty) {
+          Assert(Neg(GroundFact(name, Some(context))))
+        } else {
+          Assert(Neg(GroundFact(name, Some(s"$context::${path.get}"))))
+        }
+
+      case Conjunction(fact1, fact2, remaining @ _*) =>
+        Conjunction(namespace(context, fact1), namespace(context, fact2), remaining.map(namespace(context, _)): _*)
+
+      case Disjunction(fact1, fact2, remaining @ _*) =>
+        Disjunction(namespace(context, fact1), namespace(context, fact2), remaining.map(namespace(context, _)): _*)
     }
 
   }

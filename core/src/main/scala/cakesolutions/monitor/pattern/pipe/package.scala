@@ -14,7 +14,7 @@ package object pipe {
       import context.dispatcher
 
       val sender = context.sender()
-      msg.map(Tell(_, sender)).pipeTo(monitor)(sender).flatMap { _ =>
+      msg.map(Tell(_, sender).event).pipeTo(monitor)(sender).flatMap { _ =>
         msg.pipeTo(ref)(sender)
       }
     }
@@ -24,7 +24,7 @@ package object pipe {
       import context.dispatcher
 
       val sender = context.sender()
-      msg.map(Tell(_, sender)).pipeTo(monitor)(sender).flatMap { _ =>
+      msg.map(Tell(_, sender).event).pipeTo(monitor)(sender).flatMap { _ =>
         msg.pipeToSelection(ref)(sender)
       }
     }

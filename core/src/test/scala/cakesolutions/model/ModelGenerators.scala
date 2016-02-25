@@ -107,7 +107,7 @@ trait ModelGenerators {
   // FIXME: is this needed?
   val BehaviourValueGen: Gen[Notification] = frequency(
     1 -> arbitrary[Boolean].map(StableValue),
-    1 -> (for { behaviour <- BehaviourGen() } yield UnstableValue(behaviour))
+    1 -> (for { behaviour <- Gen.lzy(Gen.option(BehaviourGen())) } yield UnstableValue(behaviour))
   )
 
 }

@@ -1,4 +1,5 @@
-package cakesolutions.model.provers
+package cakesolutions.model
+package provers
 
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
@@ -8,7 +9,7 @@ import com.typesafe.config.Config
 
 import cakesolutions.syntax.QueryLanguage
 
-class Z3(config: Config) extends Interface {
+private[model] class Z3(config: Config) extends Interface {
 
   import QueryLanguage._
 

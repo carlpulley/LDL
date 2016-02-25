@@ -13,9 +13,9 @@ package object ask {
     @inline
     def `?+`(msg: Any)(implicit monitor: Monitor, timeout: Timeout, context: ActorContext): Future[Any] = {
       val sender = context.sender()
-      monitor.ref ! Tell(msg, sender.path)
+      monitor.ref ! Tell(msg, sender.path).event
       ref.ask(msg)(timeout, sender).map { reply =>
-        monitor.ref ! Receive(reply, ref)
+        monitor.ref ! Receive(reply, ref).event
         reply
       } (context.dispatcher)
     }
@@ -25,9 +25,9 @@ package object ask {
     @inline
     def `?+`(msg: Any)(implicit monitor: Monitor, timeout: Timeout, context: ActorContext): Future[Any] = {
       val sender = context.sender()
-      monitor.ref ! Tell(msg, sender.path)
+      monitor.ref ! Tell(msg, sender.path).event
       ref.ask(msg)(timeout, sender).map { reply =>
-        monitor.ref ! Receive(reply, ref)
+        monitor.ref ! Receive(reply, ref).event
         reply
       } (context.dispatcher)
     }

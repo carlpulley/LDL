@@ -15,6 +15,8 @@ object QueryModel {
   sealed trait ObservableEvent extends Event {
     def observation: Observation
   }
+  // TODO: allow `Assertion` (or a similar event) to use push and pop in the prover backend (c.f. real querying of state)?
+  final case class Assertion(observation: Observation) extends Event
   final case class Next(observation: Observation) extends ObservableEvent
   final case class Completed(observation: Observation) extends ObservableEvent
 
@@ -32,7 +34,9 @@ object QueryModel {
   /**
    * @param state  positive propositional description of the next states for an alternating automaton over words
    */
-  final case class UnstableValue(state: Query) extends Notification
+  final case class UnstableValue(state: Option[Query] = None) extends Notification {
+    override def toString: String = s"UnstableValue(${state.getOrElse("")})"
+  }
 
   /**
    * Auxillary functions that support QueryValue lattice structure
@@ -42,8 +46,11 @@ object QueryModel {
     case (StableValue(result1), StableValue(result2)) =>
       StableValue(result1 && result2)
 
+    case (UnstableValue(Some(atom1)), UnstableValue(Some(atom2))) =>
+      UnstableValue(Some(And(atom1, atom2)))
+
     case (UnstableValue(atom1), UnstableValue(atom2)) =>
-      UnstableValue(And(atom1, atom2))
+      UnstableValue(atom1 orElse atom2)
 
     case (StableValue(true), result2 @ UnstableValue(_)) =>
       result2
@@ -62,8 +69,11 @@ object QueryModel {
     case (StableValue(result1), StableValue(result2)) =>
       StableValue(result1 || result2)
 
+    case (UnstableValue(Some(atom1)), UnstableValue(Some(atom2))) =>
+      UnstableValue(Some(Or(atom1, atom2)))
+
     case (UnstableValue(atom1), UnstableValue(atom2)) =>
-      UnstableValue(Or(atom1, atom2))
+      UnstableValue(atom1 orElse atom2)
 
     case (result1 @ StableValue(true), UnstableValue(_)) =>
       result1
@@ -82,8 +92,11 @@ object QueryModel {
     case StableValue(result) =>
       StableValue(!result)
 
-    case UnstableValue(atom) =>
-      UnstableValue(not(atom))
+    case UnstableValue(Some(atom)) =>
+      UnstableValue(Some(not(atom)))
+
+    case UnstableValue(None) =>
+      UnstableValue(None)
   }
 
 }

@@ -1,5 +1,4 @@
 package cakesolutions.monitor
-package model
 
 import akka.actor.{ActorRef, Terminated}
 import akka.contrib.pattern.ReceivePipeline

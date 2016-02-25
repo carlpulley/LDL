@@ -1,10 +1,11 @@
-package cakesolutions.model.provers
+package cakesolutions.model
+package provers
 
 import scala.util.Try
 
 import cakesolutions.syntax.QueryLanguage
 
-trait Interface {
+private[model] trait Interface {
 
   import QueryLanguage._
 

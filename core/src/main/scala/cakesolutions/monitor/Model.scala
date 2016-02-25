@@ -1,15 +1,17 @@
 package cakesolutions.monitor
 
 import akka.actor._
-import cakesolutions.monitor.model.{EventExtractor, Prover, WatchSubject}
-import cakesolutions.syntax.QueryLanguage.{Fact, Query}
+import cakesolutions.model.{Prover, QueryModel}
+import cakesolutions.syntax.QueryLanguage._
 
 object Model {
 
   /**
    * Internal API
    */
-  sealed trait Observation
+  sealed trait Observation {
+    def event: QueryModel.Event
+  }
 
   final case class Receive(msg: Any, sender: ActorPath) extends Observation {
     def this(msg: Any, sender: ActorRef) = {
@@ -19,6 +21,9 @@ object Model {
     def this(msg: Any, sender: ActorSelection) = {
       this(msg, sender.anchorPath)
     }
+
+    def event =
+      QueryModel.Next(Set(GroundFact(msg.getClass.getSimpleName, messageType.map(t => s"receive::$t")), GroundFact(sender.toSerializationFormat, nameType.map(t => s"receive::$t"))))
   }
   object Receive {
     def apply(msg: Any, sender: ActorRef): Receive = {
@@ -38,6 +43,9 @@ object Model {
     def this(msg: Any, recipient: ActorSelection) = {
       this(msg, recipient.anchorPath)
     }
+
+    def event =
+      QueryModel.Next(Set(GroundFact(msg.getClass.getSimpleName, messageType.map(t => s"tell::$t")), GroundFact(recipient.toSerializationFormat, nameType.map(t => s"tell::$t"))))
   }
   object Tell {
     def apply(msg: Any, recipient: ActorRef): Tell = {
@@ -49,9 +57,13 @@ object Model {
     }
   }
 
-  final case class State(observations: Set[Fact]) extends Observation
+  final case class State(observations: Set[Fact]) extends Observation {
+    def event = QueryModel.Assertion(observations)
+  }
 
-  case object Completed extends Observation
+  case object Completed extends Observation {
+    def event = QueryModel.Completed(Set.empty)
+  }
 
   /**
    * Internal API
@@ -62,4 +74,4 @@ object Model {
 
 }
 
-final case class Model private (subject: ActorRef, query: Query) extends EventExtractor with WatchSubject with Prover with ActorLogging
+final case class Model private (subject: ActorRef, query: Query) extends Prover with WatchSubject

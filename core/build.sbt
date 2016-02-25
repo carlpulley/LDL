@@ -4,8 +4,6 @@ ProjectBuild.Settings.project
 
 name := "linear-dynamic-logic-core"
 
-addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
-
 antlr4Settings
 
 antlr4PackageName in Antlr4 := Some("cakesolutions.antlr4")

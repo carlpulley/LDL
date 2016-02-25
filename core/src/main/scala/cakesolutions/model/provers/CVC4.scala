@@ -1,4 +1,5 @@
-package cakesolutions.model.provers
+package cakesolutions.model
+package provers
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -19,7 +20,7 @@ import cakesolutions.syntax.QueryLanguage
  *   - export LDFLAGS="-L/usr/local/lib"
  *   - ./configure --prefix=/usr/local/Cellar/cvc4/1.4 --enable-language-bindings=java JAVA_CPPFLAGS=-I/System/Library/Frameworks/JavaVM.framework/Headers && make && make install && brew link cvc4
  */
-class CVC4(config: Config) extends Interface {
+private[model] class CVC4(config: Config) extends Interface {
 
   for (library <- config.getStringList("prover.cvc4.library")) {
     System.load(library)

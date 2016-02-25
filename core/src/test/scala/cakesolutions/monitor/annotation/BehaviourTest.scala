@@ -1,20 +1,21 @@
 package cakesolutions.monitor.annotation
 
-import akka.actor.{Actor, ActorSystem, Props, Terminated}
+import akka.actor.{Actor, ActorSystem, Props}
 import akka.event.LoggingReceive
 import akka.testkit.TestProbe
-import cakesolutions.monitor._
+import cakesolutions.monitor.Behaviour
 import org.scalatest.FreeSpec
-
-import scala.concurrent.duration._
 
 class BehaviourTest extends FreeSpec {
 
   implicit val system = ActorSystem("TestActorSystem")
 
-  //@Behaviour("[ expectZero; (_?Int ; _!String)+ ] seenZero")
-  @Behaviour("expectZero && [ (_?Int ; _!String)+ ] seenZero")
-  class Int2StringActor(probe: TestProbe) extends Actor {
+  class Int2StringActor(probe: TestProbe) extends Actor with Behaviour {
+
+    import Behaviour._
+
+    //val query = "[ expectZero; (_?Integer ; _!String)+ ] seenZero"
+    val query = "expectZero && [ (_?Integer ; _!String)+ ] seenZero"
 
     role("expectZero")
 
@@ -46,10 +47,7 @@ class BehaviourTest extends FreeSpec {
 
       ref.tell(0, sender.ref)
       probe.expectMsg("reply-0")
-      supervisor.expectMsgPF(2.seconds) {
-        case Terminated(actorRef) => false
-        case _ => true
-      }
+      supervisor.expectNoMsg()
     }
 
     "Monitored actors permit multiple allowable messages" in {
@@ -64,13 +62,10 @@ class BehaviourTest extends FreeSpec {
         ref.tell(n, sender.ref)
         probe.expectMsg(s"reply-$n")
       }
-      supervisor.expectMsgPF(2.seconds) {
-        case Terminated(actorRef) => false
-        case _ => true
-      }
+      supervisor.expectNoMsg
     }
 
-    "Monitored actors stop with invalid states" in {
+    "Monitored actors stop with invalid message types" in {
       val probe = TestProbe()
       val sender = TestProbe()
       val supervisor = TestProbe()
@@ -78,12 +73,12 @@ class BehaviourTest extends FreeSpec {
 
       supervisor.watch(ref)
 
-      ref.tell(42, sender.ref)
+      ref.tell('w', sender.ref)
       probe.expectNoMsg()
       supervisor.expectTerminated(ref)
     }
 
-    "Monitored actors stop with invalid messages" in {
+    "Monitored actors eventually stop with invalid message types" in {
       val probe = TestProbe()
       val sender = TestProbe()
       val supervisor = TestProbe()
@@ -97,6 +92,24 @@ class BehaviourTest extends FreeSpec {
       }
 
       ref.tell(4.2, sender.ref)
+      probe.expectNoMsg()
+      supervisor.expectTerminated(ref)
+    }
+
+    // FIXME: develop strategy for monitoring unhandled messages!
+    "Monitored actors evetually stop with correctly typed unhandled messages" in {
+      val probe = TestProbe()
+      val sender = TestProbe()
+      val supervisor = TestProbe()
+      val ref = system.actorOf(Props(new Int2StringActor(probe)))
+
+      supervisor.watch(ref)
+
+      // Unhandled message
+      ref.tell(42, sender.ref)
+      // Handled message
+      ref.tell(0, sender.ref)
+
       probe.expectNoMsg()
       supervisor.expectTerminated(ref)
     }
