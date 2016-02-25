@@ -14,7 +14,6 @@ class BehaviourTest extends FreeSpec {
 
     import Behaviour._
 
-    //val query = "[ expectZero; (_?Integer ; _!String)+ ] seenZero"
     val query = "expectZero && [ (_?Integer ; _!String)+ ] seenZero"
 
     role("expectZero")

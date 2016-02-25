@@ -1,4 +1,5 @@
-package cakesolutions.benchmark
+package cakesolutions.model
+package benchmark
 
 import java.util.concurrent.TimeUnit
 
@@ -7,7 +8,7 @@ import org.openjdk.jmh.annotations._
 import org.openjdk.jmh.infra.Blackhole
 
 import cakesolutions.model.ModelGenerators
-import cakesolutions.model.provers.CVC4
+import cakesolutions.model.provers.Z3
 import cakesolutions.syntax.QueryLanguage.Query
 
 @State(Scope.Benchmark)
@@ -16,20 +17,20 @@ import cakesolutions.syntax.QueryLanguage.Query
 @Threads(1)
 @Warmup(iterations = 10, time = 5, timeUnit = TimeUnit.SECONDS, batchSize = 1)
 @Measurement(iterations = 20)
-class CVC4Benchmark extends ModelGenerators {
+class Z3Benchmark extends ModelGenerators {
 
-  var cvc4: Option[CVC4] = None
+  var z3: Option[Z3] = None
 
   var behaviour: Option[Query] = None
 
   @Setup(Level.Trial)
   def setup(): Unit = {
-    cvc4 = Some(new CVC4(ConfigFactory.load("reference.conf")))
+    z3 = Some(new Z3(ConfigFactory.load("reference.conf")))
   }
 
   @TearDown(Level.Trial)
   def teardown(): Unit = {
-    cvc4 = None
+    z3 = None
   }
 
   @Setup(Level.Invocation)
@@ -46,19 +47,19 @@ class CVC4Benchmark extends ModelGenerators {
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testValidity(bh: Blackhole): Unit = {
-    bh.consume(cvc4.flatMap(p => behaviour.map(p.valid)))
+    bh.consume(z3.flatMap(p => behaviour.map(p.valid)))
   }
 
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testSatisfiability(bh: Blackhole): Unit = {
-    bh.consume(cvc4.flatMap(p => behaviour.map(p.satisfiable)))
+    bh.consume(z3.flatMap(p => behaviour.map(p.satisfiable)))
   }
 
   @Benchmark
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def testSimplify(bh: Blackhole): Unit = {
-    bh.consume(cvc4.flatMap(p => behaviour.map(p.simplify)))
+    bh.consume(z3.flatMap(p => behaviour.map(p.simplify)))
   }
 
 }
