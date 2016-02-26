@@ -32,6 +32,6 @@ object Dependencies {
 
   // Testing
   val scalatest      = "org.scalatest"  %% "scalatest"  % "2.2.6"
-  val scalacheck     = "org.scalacheck" %% "scalacheck" % "1.13.0"
+  val scalacheck     = "org.scalacheck" %% "scalacheck" % "1.12.4"
 
 }
