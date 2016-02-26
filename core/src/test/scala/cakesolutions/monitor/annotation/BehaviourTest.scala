@@ -14,12 +14,12 @@ class BehaviourTest extends FreeSpec {
 
     import Behaviour._
 
-    val query = "expectZero && [ (_?Integer ; _!String)+ ] seenZero"
+    val query = "expectZero && < (_?Integer ; _!String)+ > seenZero"
 
     role("expectZero")
 
     val seenZero: Receive = LoggingReceive {
-      case msg: Int =>
+      case msg: Integer =>
         probe.ref !+ s"reply-$msg"
         role("seenZero")
     }
@@ -36,81 +36,71 @@ class BehaviourTest extends FreeSpec {
 
   "With `Query` session types" - {
 
-    "Monitored actors permit allowable messages" in {
-      val probe = TestProbe()
-      val sender = TestProbe()
-      val supervisor = TestProbe()
-      val ref = system.actorOf(Props(new Int2StringActor(probe)))
+    "Monitored actors" - {
+      "permit allowable messages" in {
+        val probe = TestProbe()
+        val sender = TestProbe()
+        val supervisor = TestProbe()
+        val ref = system.actorOf(Props(new Int2StringActor(probe)))
 
-      supervisor.watch(ref)
+        supervisor.watch(ref)
 
-      ref.tell(0, sender.ref)
-      probe.expectMsg("reply-0")
-      supervisor.expectNoMsg()
-    }
-
-    "Monitored actors permit multiple allowable messages" in {
-      val probe = TestProbe()
-      val sender = TestProbe()
-      val supervisor = TestProbe()
-      val ref = system.actorOf(Props(new Int2StringActor(probe)))
-
-      supervisor.watch(ref)
-
-      for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
-        ref.tell(n, sender.ref)
-        probe.expectMsg(s"reply-$n")
-      }
-      supervisor.expectNoMsg
-    }
-
-    "Monitored actors stop with invalid message types" in {
-      val probe = TestProbe()
-      val sender = TestProbe()
-      val supervisor = TestProbe()
-      val ref = system.actorOf(Props(new Int2StringActor(probe)))
-
-      supervisor.watch(ref)
-
-      ref.tell('w', sender.ref)
-      probe.expectNoMsg()
-      supervisor.expectTerminated(ref)
-    }
-
-    "Monitored actors eventually stop with invalid message types" in {
-      val probe = TestProbe()
-      val sender = TestProbe()
-      val supervisor = TestProbe()
-      val ref = system.actorOf(Props(new Int2StringActor(probe)))
-
-      supervisor.watch(ref)
-
-      for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
-        ref.tell(n, sender.ref)
-        probe.expectMsg(s"reply-$n")
+        ref.tell(0, sender.ref)
+        probe.expectMsg("reply-0")
+        supervisor.expectNoMsg()
       }
 
-      ref.tell(4.2, sender.ref)
-      probe.expectNoMsg()
-      supervisor.expectTerminated(ref)
+      "permit multiple allowable messages" in {
+        val probe = TestProbe()
+        val sender = TestProbe()
+        val supervisor = TestProbe()
+        val ref = system.actorOf(Props(new Int2StringActor(probe)))
+
+        supervisor.watch(ref)
+
+        for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
+          ref.tell(n, sender.ref)
+          probe.expectMsg(s"reply-$n")
+        }
+        supervisor.expectNoMsg
+      }
     }
 
-    // FIXME: develop strategy for monitoring unhandled messages!
-    "Monitored actors evetually stop with correctly typed unhandled messages" in {
-      val probe = TestProbe()
-      val sender = TestProbe()
-      val supervisor = TestProbe()
-      val ref = system.actorOf(Props(new Int2StringActor(probe)))
+    "Monitored actors eventually stop" - {
+      for ((msgType, msg) <- Set("Character" -> 'w', "Double" -> 4.2)) {
+        s"with an invalid $msgType message type" in {
+          val probe = TestProbe()
+          val sender = TestProbe()
+          val supervisor = TestProbe()
+          val ref = system.actorOf(Props(new Int2StringActor(probe)))
 
-      supervisor.watch(ref)
+          supervisor.watch(ref)
 
-      // Unhandled message
-      ref.tell(42, sender.ref)
-      // Handled message
-      ref.tell(0, sender.ref)
+          ref.tell(msg, sender.ref)
+          probe.expectNoMsg()
+          sender.expectNoMsg()
+          supervisor.expectTerminated(ref)
+        }
 
-      probe.expectNoMsg()
-      supervisor.expectTerminated(ref)
+        s"with multiple invalid $msgType message types" in {
+          val probe = TestProbe()
+          val sender = TestProbe()
+          val supervisor = TestProbe()
+          val ref = system.actorOf(Props(new Int2StringActor(probe)))
+
+          supervisor.watch(ref)
+
+          for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
+            ref.tell(n, sender.ref)
+            probe.expectMsg(s"reply-$n")
+          }
+
+          ref.tell(msg, sender.ref)
+          probe.expectNoMsg()
+          sender.expectNoMsg()
+          supervisor.expectTerminated(ref)
+        }
+      }
     }
 
   }

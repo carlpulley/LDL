@@ -74,6 +74,7 @@ trait Behaviour extends akka.contrib.pattern.ReceivePipeline {
       HandledCompletely
 
     case msg: Any =>
+      context.system.log.debug(s"Intercepting message: $msg")
       try {
         val realSender = sender()
         monitor.ref ! Receive(msg, realSender).event
