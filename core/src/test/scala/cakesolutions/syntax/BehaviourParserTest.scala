@@ -1,6 +1,6 @@
 package cakesolutions.syntax
 
-import org.scalatest.{concurrent, BeforeAndAfterAll, Matchers, FreeSpec}
+import org.scalatest.FreeSpec
 import org.scalatest.prop.PropertyChecks
 
 import cakesolutions.model.ModelGenerators
@@ -8,9 +8,6 @@ import cakesolutions.model.ModelGenerators
 class BehaviourParserTest
   extends FreeSpec
   with PropertyChecks
-  with Matchers
-  with BeforeAndAfterAll
-  with concurrent.ScalaFutures
   with ModelGenerators {
 
   val staticBehaviours = Table(
