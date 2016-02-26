@@ -66,7 +66,7 @@ trait Prover extends StandardEvaluation with Actor with ActorLogging {
                     // We need to unwind the LDL formula further in order to determine its validity
                     context.become(unstable(simplifiedQuery))
                     // We pass on next query here to "facilitate" decision making on repeated query matching
-                    context.system.log.debug("Processed event - result: Unstable()")
+                    context.system.log.debug("Processed event - result: UnstableValue()")
                     sender() ! UnstableValue()
                   }
                 } else {

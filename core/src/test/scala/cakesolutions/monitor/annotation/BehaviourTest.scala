@@ -3,6 +3,7 @@ package cakesolutions.monitor.annotation
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.event.LoggingReceive
 import akka.testkit.TestProbe
+import cakesolutions.model.QueryModel.{UnstableValue, StableValue}
 import cakesolutions.monitor.Behaviour
 import org.scalatest.FreeSpec
 
@@ -14,7 +15,7 @@ class BehaviourTest extends FreeSpec {
 
     import Behaviour._
 
-    val query = "expectZero && < (_?Integer ; _!String)+ > seenZero"
+    val query = "expectZero && [ (_?Integer ; _!String)+ ] seenZero"
 
     role("expectZero")
 
@@ -78,7 +79,6 @@ class BehaviourTest extends FreeSpec {
 
           ref.tell(msg, sender.ref)
           probe.expectNoMsg()
-          sender.expectNoMsg()
           supervisor.expectTerminated(ref)
         }
 
@@ -87,17 +87,17 @@ class BehaviourTest extends FreeSpec {
           val sender = TestProbe()
           val supervisor = TestProbe()
           val ref = system.actorOf(Props(new Int2StringActor(probe)))
+          val msgData = List(0, 5, 42, 1, 12, 0, -4)
 
           supervisor.watch(ref)
 
-          for (n <- List(0, 5, 42, 1, 12, 0, -4)) {
+          for (n <- msgData) {
             ref.tell(n, sender.ref)
             probe.expectMsg(s"reply-$n")
           }
 
           ref.tell(msg, sender.ref)
           probe.expectNoMsg()
-          sender.expectNoMsg()
           supervisor.expectTerminated(ref)
         }
       }

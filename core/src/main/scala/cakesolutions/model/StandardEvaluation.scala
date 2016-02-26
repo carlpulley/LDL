@@ -58,10 +58,15 @@ private[model] trait StandardEvaluation {
         log.debug(s"\nst = $state\n  st |== $query${(query1 +: query2 +: remaining).map(q => s"\n  ~~> || st |== $q").mkString("")}")
         (query1 +: query2 +: remaining).foldRight[Notification](StableValue(result = false)) { case (prop, q) => join(q, evaluateQuery(prop, event, context)) }
 
-      case Exists(AssertFact(fact), query1) if !lastState && evaluateAtState(fact, state) =>
-        // for some `AssertFact(fact)` step (whilst not in last trace step)
-        log.debug(s"\nst = $state\n  st |== $query\n  ~~> && st |=/= End \t## TRUE ##\n  ~~> && st |== $fact \t## TRUE ##\n  ~~> && st |== '$query1'")
-        UnstableValue(Some(query1))
+      case Exists(AssertFact(fact), query1) if !lastState =>
+        if (evaluateAtState(fact, state)) {
+          // for some `AssertFact(fact)` step (whilst not in last trace step)
+          log.debug(s"\nst = $state\n  st |== $query\n  ~~> && st |=/= End \t## TRUE ##\n  ~~> && st |== $fact \t## TRUE ##\n  ~~> && st |== '$query1'")
+          UnstableValue(Some(query1))
+        } else {
+          log.debug(s"\nst = $state\n  st |== $query\n  ~~> && st |=/= End \t## TRUE ##\n  ~~> && st |== $fact \t## FALSE ##\n  ~~> ## FALSE ##")
+          StableValue(result = false)
+        }
 
       case Exists(AssertFact(_), _) =>
         // No `AssertFact(_)` steps possible
@@ -91,10 +96,15 @@ private[model] trait StandardEvaluation {
           evaluateQuery(Exists(path, Exists(Repeat(path), query1)), event, context)
         )
 
-      case All(AssertFact(fact), query1) if !lastState && evaluateAtState(fact, state) =>
-        // for all `AssertFact(fact)` steps (whilst not in last trace step)
-        log.debug(s"\nst = $state\n  st |== $query\n  ~~> && st |=/= End \t## TRUE ##\n  ~~> && st |== $fact \t## TRUE ##\n  ~~> && st |== '$query1'")
-        UnstableValue(Some(query1))
+      case All(AssertFact(fact), query1) if !lastState =>
+        if (evaluateAtState(fact, state)) {
+          // for all `AssertFact(fact)` steps (whilst not in last trace step)
+          log.debug(s"\nst = $state\n  st |== $query\n  ~~> && st |=/= End \t## TRUE ##\n  ~~> && st |== $fact \t## TRUE ##\n  ~~> && st |== '$query1'")
+          UnstableValue(Some(query1))
+        } else {
+          log.debug(s"\nst = $state\n  st |== $query\n  ~~> && st |=/= End \t## TRUE ##\n  ~~> && st |== $fact \t## FALSE ##\n  ~~> ## FALSE ##")
+          StableValue(result = false)
+        }
 
       case All(AssertFact(_), _) =>
         // No `AssertFact(_)` steps possible
