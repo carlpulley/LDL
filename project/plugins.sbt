@@ -1,3 +1,5 @@
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.0.0-M1")
+resolvers += Resolver.jcenterRepo
 
-addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "0.5.2")
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.1.0")
+
+addSbtPlugin("ch.jodersky" % "sbt-jni" % "0.4.4")

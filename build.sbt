@@ -1,17 +1,42 @@
 import Dependencies._
-
-Build.Settings.project
+import sbt.Keys._
+import sbt._
 
 name := "linear-dynamic-logic"
 
-libraryDependencies ++= Seq(
-  // Core Akka
-  akka.actor,
-  scalaz.core,
-  slf4j.slf4j_simple,
-  // For improving future based chaining
-  async,
-  // Testing
-  scalatest  % "test",
-  scalacheck % "test"
+lazy val core = Project(
+  id = "core",
+  base = file("core"),
+  settings = CommonProject.settings ++ Seq(
+    target in javah in Compile := (sourceDirectory in native).value / "include",
+    libraryDependencies ++= Seq(
+      ficus,
+      logback,
+      scalacheck,
+      scalatest,
+      scalaz.core,
+      shapeless,
+      slf4j.simple,
+      typesafeConfig
+    )
+  ),
+  dependencies = Seq(
+    native % Runtime
+  )
+).enablePlugins(JniLoading)
+
+lazy val native = Project(
+  id = "native",
+  base = file("native"),
+  settings = CommonProject.settings ++ Seq(
+    //enableNativeCompilation in Compile := false,
+    sourceDirectory in nativeCompile in Compile := sourceDirectory.value,
+    nativeLibraryPath in Compile := "/ch/jodersky/jni/basic/native"
+  )
+)//.enablePlugins(JniNative)
+
+lazy val root = Project(
+  id = "root",
+  base = file("."),
+  aggregate = Seq(core, native)
 )
